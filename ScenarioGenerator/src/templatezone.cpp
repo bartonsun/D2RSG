@@ -1490,15 +1490,21 @@ const UnitInfo* TemplateZone::createStackLeader(std::size_t& unusedValue,
 
         for (std::size_t i = 0; i < unitValues.size(); ++i) {
             const std::size_t value = unitValues[i] + unused;
-            const float minValue = value * minValueCoeff;
 
-            auto filter = [allowedSubraces, minValue, value](const UnitInfo* info) {
+            const float minValue = value * minValueCoeff;
+            // We can't choose a large squad if the experience is divided into 6 parts
+            const bool canPlaceBig = unitValues.size() < 6;
+
+            auto filter = [allowedSubraces, minValue, value, canPlaceBig](const UnitInfo* info) {
                 if (!allowedSubraces.empty()) {
                     if (!contains(allowedSubraces, info->getSubrace())) {
                         return true;
                     }
                 }
-
+                if (!canPlaceBig && info->isBig()) {
+                    // Remove big units if we can not place them
+                    return true;
+                }
                 return static_cast<float>(info->getValue()) < minValue || info->getValue() > value;
             };
 
@@ -1512,6 +1518,7 @@ const UnitInfo* TemplateZone::createStackLeader(std::size_t& unusedValue,
             if (leaderInfo) {
                 // Accumulate unused value after picking a leader
                 unusedValue = value - leaderInfo->getValue();
+
                 valuesConsumed = i + 1;
 
                 return leaderInfo;
@@ -1556,7 +1563,8 @@ void TemplateZone::createGroup(std::size_t& unusedValue,
     // Pick soldier units 1 by 1, starting from value that was not used for leader
     for (std::size_t i = 0; i < unitValues.size() && !positions.empty(); ++i) {
         auto value = unitValues[i] + unusedValue;
-        auto minValue = value * 0.75f;
+        float minValueCoeff = 0.95f - positions.size() * 0.05f;
+        auto minValue = value * minValueCoeff;
 
         auto noWrongValue = [minValue, value](const UnitInfo* info) {
             return info->getValue() < minValue || info->getValue() > value;
@@ -1564,12 +1572,13 @@ void TemplateZone::createGroup(std::size_t& unusedValue,
 
         // Pick random position in group
         int position = *getRandomElement(positions, rand);
+
         // If front line, pick melee only
         const auto frontline = position % 2 == 0;
         // Second position in case of big unit
         const auto secondPosition = frontline ? position + 1 : position - 1;
         // We can place big unit if front and back line positions are free
-        const auto canPlaceBig = positions.count(position) && positions.count(secondPosition);
+        const auto canPlaceBig = positions.count(position) && positions.count(secondPosition) && positions.size() > unitValues.size();
 
         auto filter = [allowedSubraces, canPlaceBig, frontline](const UnitInfo* info) {
             if (!allowedSubraces.empty()) {
@@ -1651,11 +1660,11 @@ void TemplateZone::tightenGroup(std::size_t& unusedValue,
 
     // Start with somewhat relaxed minimum value.
     // Gradually decrease min value expectation as we struggle to pick units
-    float minValueCoeff{0.55f};
+    float minValueCoeff = 1.f - positions.size() * 0.05f;
     // How many times we failed to pick a unit
     int failedAttempts{0};
     // How many failed attemts considered as a stop
-    const int totalFails{5};
+    const int totalFails{20};
 
     while (failedAttempts < totalFails && !positions.empty()
            && unusedValue >= getGameInfo()->getMinSoldierValue()) {
@@ -1740,10 +1749,12 @@ void TemplateZone::tightenGroup(std::size_t& unusedValue,
                 positions.erase(position);
                 groupUnits[position] = info;
             }
+            minValueCoeff = 1.f - positions.size() * 0.05f;
+
         } else {
             // Could not pick a unit, unused value remains the same
             // Decrease minValue range, count how many times we failed to pick
-            minValueCoeff = std::max(0.f, minValueCoeff - 0.1f);
+            minValueCoeff = std::max(0.f, minValueCoeff - 0.05f);
             ++failedAttempts;
         }
     }
