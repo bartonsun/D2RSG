@@ -52,6 +52,27 @@ enum class SubRaceType
     NeutralBarbarian,
     NeutralWolf,
     Elf,
+    // Ñustom subraces
+    Sub15,
+    Sub16,
+    Sub17,
+    Sub18,
+    Sub19,
+    Sub20,
+    Sub21,
+    Sub22,
+    Sub23,
+    Sub24,
+    Sub25,
+    Sub26,
+    Sub27,
+    Sub28,
+    Sub29,
+    Sub30,
+    Sub31,
+    Sub32,
+    Sub33,
+    Sub34,
 };
 
 // Same as LTerrain.dbf
