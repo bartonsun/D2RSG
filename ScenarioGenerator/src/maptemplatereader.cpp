@@ -805,6 +805,35 @@ static void readDiplomacy(const std::vector<sol::table>& tables, MapTemplateDipl
     }
 }
 
+static void readTemplateCustomParameters(std::vector<MapTemplateSettings::TemplateCustomParameter>& parameters,
+                                         const std::vector<sol::table>& tables)
+{
+    for (const auto& table : tables) {
+        MapTemplateSettings::TemplateCustomParameter parameter{};
+        parameter.name = readString(table, "name", "");
+        auto tableValues = table.get<sol::optional<std::vector<std::string>>>("values");
+        if (tableValues.has_value()) {
+            for (const auto& string : tableValues.value()) {
+                const std::string value(string.c_str());
+
+                parameter.values.push_back(value);
+            }
+            parameter.valueMin = 1;
+            parameter.valueMax = parameter.values.size();
+            parameter.valueStep = 1;
+        } else {
+            parameter.unit = readString(table, "unit", "");
+            parameter.valueMin = readValue(table, "min", 0, -999999, 999999);
+            parameter.valueMax = readValue(table, "max", 0, -999999, 999999);
+            parameter.valueStep = readValue(table, "step", 1, 1, 999999);
+        }
+        parameter.valueDefault = readValue(table, "default", parameter.valueMin, parameter.valueMin,
+                                           parameter.valueMax);
+
+        parameters.push_back(parameter);
+    }
+}
+
 static void readContents(MapTemplate& mapTemplate, const sol::table& contentsTable)
 {
     MapTemplateContents& contents = mapTemplate.contents;
@@ -854,6 +883,24 @@ static void readContents(MapTemplate& mapTemplate, const sol::table& contentsTab
     if (diplomacyTable.has_value()) {
         readDiplomacy(diplomacyTable.value(), contents.diplomacy);
     }
+
+    auto units = contentsTable.get<sol::optional<StringSet>>("forbiddenUnits");
+    if (units.has_value()) {
+        mapTemplate.settings.forbiddenUnits.clear();
+        readStringSet(mapTemplate.settings.forbiddenUnits, units.value());
+    }
+
+    auto items = contentsTable.get<sol::optional<StringSet>>("forbiddenItems");
+    if (items.has_value()) {
+        mapTemplate.settings.forbiddenItems.clear();
+        readStringSet(mapTemplate.settings.forbiddenItems, items.value());
+    }
+
+    auto spells = contentsTable.get<sol::optional<StringSet>>("forbiddenSpells");
+    if (spells.has_value()) {
+        mapTemplate.settings.forbiddenSpells.clear();
+        readStringSet(mapTemplate.settings.forbiddenSpells, spells.value());
+    }
 }
 
 static void readSettings(MapTemplateSettings& settings, const sol::state& lua)
@@ -889,6 +936,11 @@ static void readSettings(MapTemplateSettings& settings, const sol::state& lua)
     settings.startingGold = readValue(table, "startingGold", 0, 0, 9999);
     settings.startingNativeMana = readValue(table, "startingNativeMana", 0, 0, 9999);
     settings.forest = readValue(table, "forest", 0, 0, 100);
+
+    auto parameters = table.get<OptionalTableArray>("parameters");
+    if (parameters.has_value()) {
+        readTemplateCustomParameters(settings.parameters, parameters.value());
+    }
 
     auto units = table.get<sol::optional<StringSet>>("forbiddenUnits");
     if (units.has_value()) {
@@ -949,7 +1001,9 @@ void readTemplateContents(MapTemplate& mapTemplate, sol::state& lua)
 
     auto getContents = object.value().as<sol::protected_function>();
 
-    auto result = getContents(mapTemplate.settings.races, mapTemplate.settings.size);
+    auto result = getContents(mapTemplate.settings.races, mapTemplate.settings.size,
+                              mapTemplate.settings.parametersValues);
+
     if (result.valid()) {
         sol::table contents = result;
         readContents(mapTemplate, contents);

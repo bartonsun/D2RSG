@@ -46,6 +46,21 @@ struct MapTemplateSettings
     int startingNativeMana{};
     int forest{}; // Percentage of unused tiles converted to forest after content placement
 
+    struct TemplateCustomParameter
+    {
+        std::string name;
+        std::string unit;
+        std::vector<std::string> values;
+        int valueMin{0};
+        int valueMax{int(values.size())};
+        int valueStep{1};
+        int valueDefault{valueMin};
+        int value{valueDefault};
+    };
+
+    std::vector<TemplateCustomParameter> parameters{};
+    std::vector<int> parametersValues{};
+
     // Replaces random races with real ones
     void replaceRandomRaces(RandomGenerator& rand)
     {
