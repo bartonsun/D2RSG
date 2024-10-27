@@ -85,6 +85,16 @@ struct GeneratorSettings
     std::uint8_t maxTreeImageIndex{};
     // Number of iterations for placing zones within an attempt
     std::uint16_t iterations{};
+    // Maximum number of custom template parameters
+    std::uint8_t maxTemplateCustomParameters{};
+    // Enable forest spin on template generation page
+    bool enableParameterForest;
+    // Enable roads spin on template generation page
+    bool enableParameterRoads;
+    // Enable starting gold spin on template generation page
+    bool enableParameterGold;
+    // Enable starting mana spin on template generation page
+    bool enableParameterMana;
 };
 
 bool readGeneratorSettings(const std::filesystem::path& gameFolderPath);
