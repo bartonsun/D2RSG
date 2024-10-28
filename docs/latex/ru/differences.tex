@@ -1,11 +1,7 @@
-\section{Отличия от версии 0.6.0}
+\section{Отличия от версии 0.7.0}
 \begin{itemize}
-\item в параметры зоны добавлено поле \texttt{resourceMarkets}
-\item добавлен новый тип данных \hyperref[resourceTypes]{\texttt{Resource}}
-\item добавлена новая таблица, описывающая \hyperref[resourcemarket]{\selectlanguage{Russian}рынок ресурсов}
-\item подробно описана \hyperref[contentsTable]{\selectlanguage{Russian}таблица содержимого}
-\item добавлена новая таблица, описывающая \hyperref[diplomacy]{\selectlanguage{Russian}дипломатические отношения}. Список отношений между расами в шаблоне задается необязательным полем \texttt{diplomacy} в таблице содержимого, возвращаемой функцией \texttt{getContents}
-\item в таблицы \hyperref[city]{\texttt{Город}}, \hyperref[capital]{\texttt{Столица}}, \hyperref[ruin]{\texttt{Руины}},  \hyperref[merchant]{\texttt{Торговец}}, \hyperref[mage]{\texttt{Башня мага}}, \hyperref[mercenary]{\texttt{Лагерь наемников}}, \hyperref[trainer]{\texttt{Тренер}}, \hyperref[neutralStacks]{\texttt{Нейтральный отряд}}, \hyperref[bags]{\texttt{Сундук}} добавлено поле приоритета ИИ: \texttt{aiPriority}
-\item в таблицы \hyperref[city]{\texttt{Город}}, \hyperref[capital]{\texttt{Столица}}, \hyperref[ruin]{\texttt{Руины}},  \hyperref[merchant]{\texttt{Торговец}}, \hyperref[mage]{\texttt{Башня мага}}, \hyperref[mercenary]{\texttt{Лагерь наемников}}, \hyperref[trainer]{\texttt{Тренер}}, \hyperref[neutralStacks]{\texttt{Нейтральный отряд}} добавлено поле \texttt{name} для задания названий
-\item в таблицы \hyperref[merchant]{\texttt{Торговец}}, \hyperref[mage]{\texttt{Башня мага}}, \hyperref[mercenary]{\texttt{Лагерь наемников}}, \hyperref[trainer]{\texttt{Тренер}} добавлено поле \texttt{description} для задания описаний
+\item в параметры шаблона добавлено поле \hyperref[customParameters]{{CustomParameters}} для описания дополнительных параметров шаблона, доступных для выбора пользователем.
+\item добавлена поддержка дополнительных \hyperref[subraceTypes]{субрас}
+\item в таблице \hyperref[mercenary]{\texttt{Лагерь наемников}} изменено поле \texttt{value} - теперь обозначает максимальную стоимость всех юнитов в лагере наемников, вместо опыта за убийство.
+\item в таблицу \hyperref[mercenary]{\texttt{Лагерь наемников}} добавлено поле \texttt{enrollValue} для задания минимальной и максимальной цены юнита.
 \end{itemize}
