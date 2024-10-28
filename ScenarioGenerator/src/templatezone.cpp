@@ -2081,10 +2081,19 @@ Site* TemplateZone::placeMercenary(const Position& position, const MercenaryInfo
                             info->getUnitId());
         };
 
+        const auto& enrollValue{mercInfo.enrollValue};
+
         while (currentValue <= desiredValue) {
             const int remainingValue = desiredValue - currentValue;
 
-            auto noWrongValue = [remainingValue](const UnitInfo* info) {
+            auto noWrongValue = [remainingValue, enrollValue](const UnitInfo* info) {
+                if (enrollValue && (info->getEnrollCost() < enrollValue.min ||
+                    info->getEnrollCost() > enrollValue.max)) {
+                    // If user specified single units value range,
+                    // filter units that are outside of it
+                    return true;
+                }
+
                 return info->getEnrollCost() > remainingValue;
             };
 

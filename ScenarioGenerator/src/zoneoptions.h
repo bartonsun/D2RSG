@@ -148,6 +148,8 @@ struct MercenaryInfo
     std::string description;
     // Total value of units, excluding requiredUnits
     RandomValue<std::uint32_t> value{};
+    // Single unit enroll cost, excluding requiredUnits
+    RandomValue<std::uint32_t> enrollValue{};
     AiPriority aiPriority;
 };
 
