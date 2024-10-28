@@ -528,6 +528,11 @@ static void readMercenary(MercenaryInfo& mercenary, const sol::table& table)
         readRandomValue<std::uint32_t>(mercenary.value, value.value(), 0, 0);
     }
 
+    auto enrollValue = table.get<OptionalTable>("enrollValue");
+    if (enrollValue.has_value()) {
+        readRandomValue<std::uint32_t>(mercenary.enrollValue, enrollValue.value(), 0, 0);
+    }
+
     auto units = table.get<OptionalTableArray>("units");
     if (units.has_value()) {
         readMercenaryUnits(mercenary.requiredUnits, units.value());
@@ -823,9 +828,9 @@ static void readTemplateCustomParameters(std::vector<MapTemplateSettings::Templa
             parameter.valueStep = 1;
         } else {
             parameter.unit = readString(table, "unit", "");
-            parameter.valueMin = readValue(table, "min", 0, -999999, 999999);
-            parameter.valueMax = readValue(table, "max", 0, -999999, 999999);
-            parameter.valueStep = readValue(table, "step", 1, 1, 999999);
+            parameter.valueMin = readValue(table, "min", 0, -9999, 9999);
+            parameter.valueMax = readValue(table, "max", 0, -9999, 9999);
+            parameter.valueStep = readValue(table, "step", 1, 1, 9999);
         }
         parameter.valueDefault = readValue(table, "default", parameter.valueMin, parameter.valueMin,
                                            parameter.valueMax);
@@ -937,7 +942,7 @@ static void readSettings(MapTemplateSettings& settings, const sol::state& lua)
     settings.startingNativeMana = readValue(table, "startingNativeMana", 0, 0, 9999);
     settings.forest = readValue(table, "forest", 0, 0, 100);
 
-    auto parameters = table.get<OptionalTableArray>("parameters");
+    auto parameters = table.get<OptionalTableArray>("customParameters");
     if (parameters.has_value()) {
         readTemplateCustomParameters(settings.parameters, parameters.value());
     }
