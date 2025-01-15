@@ -57,7 +57,9 @@ Map::Map()
     // Spell cast
     insertObject(std::make_unique<SpellCast>(createId(CMidgardID::Type::SpellCast)));
     // Scenario variables
-    insertObject(std::make_unique<ScenarioVariables>(createId(CMidgardID::Type::ScenarioVariable)));
+    auto scenarioVariablesObject{std::make_unique<ScenarioVariables>(createId(CMidgardID::Type::ScenarioVariable))};
+    scenarioVariables = scenarioVariablesObject.get();
+    insertObject(std::move(scenarioVariablesObject));
     // Plan
     auto planObject{std::make_unique<Plan>(createId(CMidgardID::Type::Plan))};
     plan = planObject.get();

@@ -20,6 +20,8 @@
 #pragma once
 
 #include "scenarioobject.h"
+#include <string>
+#include <vector>
 
 namespace rsg {
 
@@ -38,6 +40,18 @@ public:
     }
 
     void serialize(Serializer& serializer, const Map& scenario) const override;
+
+    void add(std::string name,
+        std::uint32_t value);
+
+private:
+    struct Entry
+    {
+        std::string name;
+        std::uint32_t value;
+    };
+
+    std::vector<Entry> variables;
 };
 
 } // namespace rsg

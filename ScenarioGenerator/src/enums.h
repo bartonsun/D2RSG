@@ -195,18 +195,18 @@ enum class ReachType
 enum class OrderType
 {
     Normal = 1,
-    Stand,
-    Guard,
-    AttackStack,
-    DefendStack,
-    SecureCity,
-    Roam,
-    MoveToLocation,
-    DefendLocation,
-    Bezerk,
-    Assist,
-    Steal,
-    DefendCity,
+    Stand = 2,
+    Guard = 3,
+    AttackStack = 4,
+    DefendStack = 5,
+    SecureCity = 6,
+    Roam = 7,
+    MoveToLocation = 8,
+    DefendLocation = 9,
+    Bezerk = 10,
+    Assist = 11,
+    Steal = 13,
+    DefendCity = 14,
 };
 
 // Same as LLMCat.dbf

@@ -97,6 +97,7 @@ public:
     void generateZones();
     void fillZones();
     void setupDiplomacy();
+    void addScenarioVariables();
     void createDirectConnections();
     void createObstacles();
 
