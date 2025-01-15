@@ -277,7 +277,6 @@ void MapGenerator::addScenarioVariables()
     const auto& customScenarioVariables{
         mapGenOptions.mapTemplate->contents.scenarioVariables.scenarioVariables};
     auto scenarioVariables = map->getScenarioVariables();
-    std::cout << "SIZE: " << customScenarioVariables.size();
     for (std::size_t i = 0; i < customScenarioVariables.size(); ++i) {
         scenarioVariables->add(
             customScenarioVariables[i].name, 
