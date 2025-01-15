@@ -112,6 +112,18 @@ struct MapTemplateDiplomacy
     std::vector<Relation> relations;
 };
 
+// Describes template scenario variables
+struct MapTemplateScenarioVariables
+{
+    struct ScenarioVariables
+    {
+        std::string name;
+        std::uint32_t value;
+    };
+
+    std::vector<ScenarioVariables> scenarioVariables;
+};
+
 // Describes template contents.
 struct MapTemplateContents
 {
@@ -120,6 +132,7 @@ struct MapTemplateContents
     Zones zones;
     std::vector<ZoneConnection> connections;
     MapTemplateDiplomacy diplomacy;
+    MapTemplateScenarioVariables scenarioVariables;
 };
 
 // Random scenario generator template

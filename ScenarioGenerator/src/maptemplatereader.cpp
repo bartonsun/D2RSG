@@ -178,6 +178,22 @@ void bindLuaApi(sol::state& lua)
         "ChangeTerrain", SpellType::ChangeTerrain,
         "GiveWards", SpellType::GiveWards
     );
+
+    lua.new_enum("Order",
+        "Normal", OrderType::Normal,
+        "Stand", OrderType::Stand,
+        "Guard", OrderType::Guard,
+        "AttackStack", OrderType::AttackStack,
+        "DefendStack", OrderType::DefendStack,
+        "SecureCity", OrderType::SecureCity,
+        "Roam", OrderType::Roam,
+        "MoveToLocation", OrderType::MoveToLocation,
+        "DefendLocation", OrderType::DefendLocation,
+        "Bezerk", OrderType::Bezerk,
+        "Assist", OrderType::Assist,
+        "Steal", OrderType::Steal,
+        "DefendCity", OrderType::DefendCity
+    );
     // clang-format on
 }
 
@@ -329,6 +345,11 @@ static void readGroup(GroupInfo& group, const sol::table& table)
     if (loot.has_value()) {
         readLoot(group.loot, loot.value());
     }
+
+    group.owner = table.get_or("owner", RaceType::Neutral);
+    group.order = table.get_or("order", OrderType::Stand);
+    group.name = readString(table, "name", "");
+    readAiPriority(group.aiPriority, table);
 }
 
 static void readCity(CityInfo& city, const sol::table& table)
@@ -626,7 +647,9 @@ static void readStacks(StacksInfo& stacks, const std::vector<sol::table>& tables
         readGroup(info.stacks, table);
         info.count = readValue(table, "count", 0, 0);
         info.owner = table.get_or("owner", RaceType::Neutral);
+        info.order = table.get_or("order", OrderType::Stand);
         info.name = readString(table, "name", "");
+
         readAiPriority(info.aiPriority, table);
 
         stacks.stackGroups.push_back(info);
@@ -810,6 +833,17 @@ static void readDiplomacy(const std::vector<sol::table>& tables, MapTemplateDipl
     }
 }
 
+static void readScenarioVariables(const std::vector<sol::table>& tables,
+    std::vector<MapTemplateScenarioVariables::ScenarioVariables>& scenarioVariables)
+{
+    for (const auto& table : tables) {
+        MapTemplateScenarioVariables::ScenarioVariables scenarioVariable{};
+        scenarioVariable.name = readString(table, "name", "");
+        scenarioVariable.value = readValue(table, "value", 0, 0, 999999999);
+        scenarioVariables.push_back(scenarioVariable);
+    }
+}
+
 static void readTemplateCustomParameters(std::vector<MapTemplateSettings::TemplateCustomParameter>& parameters,
                                          const std::vector<sol::table>& tables)
 {
@@ -887,6 +921,11 @@ static void readContents(MapTemplate& mapTemplate, const sol::table& contentsTab
     auto diplomacyTable = contentsTable.get<OptionalTableArray>("diplomacy");
     if (diplomacyTable.has_value()) {
         readDiplomacy(diplomacyTable.value(), contents.diplomacy);
+    }
+
+    auto scenarioVariablesTable = contentsTable.get<OptionalTableArray>("scenarioVariables");
+    if (scenarioVariablesTable.has_value()) {
+        readScenarioVariables(scenarioVariablesTable.value(), contents.scenarioVariables.scenarioVariables);
     }
 
     auto units = contentsTable.get<sol::optional<StringSet>>("forbiddenUnits");

@@ -38,6 +38,7 @@ class Plan;
 class MapElement;
 class Diplomacy;
 class ScenarioInfo;
+class ScenarioVariables;
 class Mountains;
 
 struct Tile
@@ -164,6 +165,11 @@ public:
         return scenarioInfo;
     }
 
+    ScenarioVariables* getScenarioVariables()
+    {
+        return scenarioVariables;
+    }
+
     Diplomacy* getDiplomacy()
     {
         return diplomacy;
@@ -186,6 +192,7 @@ private:
     Plan* plan{};
     Diplomacy* diplomacy{};
     ScenarioInfo* scenarioInfo{};
+    ScenarioVariables* scenarioVariables{};
     Mountains* mountains{};
     TalismanCharges* talismanCharges{};
 };

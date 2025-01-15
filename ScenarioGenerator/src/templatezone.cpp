@@ -963,8 +963,26 @@ bool TemplateZone::guardObject(const MapElement& mapElement, const GroupInfo& gu
         return true;
     }
 
-    stack->setOwner(mapGenerator->getNeutralPlayerId());
-    stack->setSubrace(mapGenerator->getNeutralSubraceId());
+    CMidgardID ownerId{mapGenerator->getPlayerId(guardInfo.owner)};
+    CMidgardID subraceId{mapGenerator->getSubraceId(guardInfo.owner)};
+
+    if (ownerId == emptyId || subraceId == emptyId) {
+        ownerId = mapGenerator->getNeutralPlayerId();
+        subraceId = mapGenerator->getNeutralSubraceId();
+    }
+
+    stack->setOwner(ownerId);
+    stack->setSubrace(subraceId);
+
+    if (!guardInfo.name.empty()) {
+        Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
+        if (leader) {
+            leader->setName(guardInfo.name);
+        }
+    }
+
+    stack->setAiPriority(guardInfo.aiPriority);
+    stack->setOrder(guardInfo.order);
 
     placeObject(std::move(stack), guardTile);
 
@@ -2259,8 +2277,26 @@ Stack* TemplateZone::placeZoneGuard(const Position& position, const GroupInfo& g
         return nullptr;
     }
 
-    stack->setOwner(mapGenerator->getNeutralPlayerId());
-    stack->setSubrace(mapGenerator->getNeutralSubraceId());
+    CMidgardID ownerId{mapGenerator->getPlayerId(guardInfo.owner)};
+    CMidgardID subraceId{mapGenerator->getSubraceId(guardInfo.owner)};
+
+    if (ownerId == emptyId || subraceId == emptyId) {
+        ownerId = mapGenerator->getNeutralPlayerId();
+        subraceId = mapGenerator->getNeutralSubraceId();
+    }
+
+    stack->setOwner(ownerId);
+    stack->setSubrace(subraceId);
+
+    if (!guardInfo.name.empty()) {
+        Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
+        if (leader) {
+            leader->setName(guardInfo.name);
+        }
+    }
+
+    stack->setAiPriority(guardInfo.aiPriority);
+    stack->setOrder(guardInfo.order);
 
     Stack* stackPtr{stack.get()};
     placeObject(std::move(stack), position);
@@ -3006,6 +3042,7 @@ void TemplateZone::placeStacks()
             }
 
             stack->setAiPriority(stackGroup.aiPriority);
+            stack->setOrder(stackGroup.order);
 
             randomStacks[stackIndex] = stack.get();
             placeObject(std::move(stack), positions[positionIndex++]);

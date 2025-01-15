@@ -58,6 +58,13 @@ struct GroupInfo
     LootInfo loot;
     // Group units value
     RandomValue<std::uint32_t> value{};
+    // Race that controls the stacks
+    RaceType owner{RaceType::Neutral};
+    // Stack order
+    OrderType order{OrderType::Stand};
+    // Custom stack name
+    std::string name;
+    AiPriority aiPriority;
 };
 
 struct CityInfo
@@ -161,6 +168,8 @@ struct NeutralStacksInfo
     std::uint32_t count{};
     // Race that controls the stacks
     RaceType owner{RaceType::Neutral};
+    // Stack order
+    OrderType order{OrderType::Normal};
     // Custom leader name
     std::string name;
     AiPriority aiPriority;

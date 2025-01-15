@@ -29,9 +29,20 @@ void ScenarioVariables::serialize(Serializer& serializer, const Map& scenario) c
     CMidgardID::String idString{};
     objectId.toString(idString);
 
-    serializer.serialize(idString.data(), 0);
+    serializer.serialize(idString.data(), static_cast<std::uint32_t>(variables.size()));
+
+    for (int i = 0; i < variables.size(); i++) {
+        serializer.serialize("ID", static_cast<std::uint32_t>(i));
+        serializer.serialize("NAME", variables[i].name.c_str());
+        serializer.serialize("VALUE", static_cast<std::uint32_t>(variables[i].value));
+    }
 
     serializer.leaveRecord();
 }
+
+ void ScenarioVariables::add(std::string name, std::uint32_t value)
+{
+     variables.push_back({name, value});
+ }
 
 } // namespace rsg

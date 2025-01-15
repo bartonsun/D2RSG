@@ -27,6 +27,7 @@
 #include "playerbuildings.h"
 #include "road.h"
 #include "scenarioinfo.h"
+#include "scenariovariables.h"
 #include "subrace.h"
 #include <cassert>
 #include <iostream>
@@ -106,6 +107,7 @@ MapPtr MapGenerator::generate()
     fillZones();
 
     setupDiplomacy();
+    addScenarioVariables();
 
     return std::move(map);
 }
@@ -267,6 +269,20 @@ void MapGenerator::setupDiplomacy()
                 diplomacy->add(raceTypeA, raceTypeB, 0u);
             }
         }
+    }
+}
+
+void MapGenerator::addScenarioVariables()
+{
+    const auto& customScenarioVariables{
+        mapGenOptions.mapTemplate->contents.scenarioVariables.scenarioVariables};
+    auto scenarioVariables = map->getScenarioVariables();
+    std::cout << "SIZE: " << customScenarioVariables.size();
+    for (std::size_t i = 0; i < customScenarioVariables.size(); ++i) {
+        scenarioVariables->add(
+            customScenarioVariables[i].name, 
+            customScenarioVariables[i].value
+        );
     }
 }
 
