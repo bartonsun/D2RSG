@@ -205,6 +205,12 @@ struct TemplateZone : public ZoneOptions
                                        const GroupUnits& groupUnits,
                                        bool neutralOwner);
 
+    // Picks stack leader using ids
+    const UnitInfo* pickStackLeader(std::size_t& unusedValue,
+                                      std::size_t& valuesConsumed,
+                                      const std::vector<std::size_t>& unitValues,
+                                      std::set<CMidgardID> leaderIds);
+
     // Picks stack leader using stack unit values
     const UnitInfo* createStackLeader(std::size_t& unusedValue,
                                       std::size_t& valuesConsumed,

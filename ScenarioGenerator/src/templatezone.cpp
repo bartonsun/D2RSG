@@ -1334,8 +1334,19 @@ std::unique_ptr<Stack> TemplateZone::createStack(const GroupInfo& stackInfo, boo
     std::size_t valuesConsumed{};
 
     // Pick leader
-    const UnitInfo* leaderInfo{
-        createStackLeader(unusedValue, valuesConsumed, unitValues, stackInfo.subraceTypes)};
+    const UnitInfo* leaderInfo{};
+    const auto& leaders{getGameInfo()->getLeaders()};
+
+    if (!stackInfo.leaderIds.empty()) {
+        leaderInfo = pickStackLeader(unusedValue, valuesConsumed, unitValues, 
+                                       stackInfo.leaderIds);
+    }
+
+    if (!leaderInfo) {
+        leaderInfo = createStackLeader(unusedValue, valuesConsumed, unitValues,
+                                       stackInfo.subraceTypes);
+    }
+
     if (!leaderInfo) {
         std::string msg{"Could not pick stack leader. Stack value: "};
         msg += std::to_string(strength);
@@ -1484,6 +1495,42 @@ std::unique_ptr<Stack> TemplateZone::createStack(const UnitInfo& leaderInfo,
     createGroupUnits(stack->getGroup(), groupUnits);
 
     return std::move(stack);
+}
+
+const UnitInfo* TemplateZone::pickStackLeader(std::size_t& unusedValue,
+                                              std::size_t& valuesConsumed,
+                                              const std::vector<std::size_t>& unitValues,
+                                              std::set<CMidgardID> leaderIds)
+{
+    auto& rand{mapGenerator->randomGenerator};
+
+    auto leadersRequired = [leaderIds](const UnitInfo* info) {
+        return !contains(leaderIds, info->getUnitId());
+    };
+
+    std::size_t unused = unusedValue;
+    const UnitInfo* leaderInfo{pickLeader(rand, {leadersRequired})};
+
+    if (leaderInfo) {
+        for (std::size_t i = 0; i < unitValues.size(); ++i) {
+            unused += unitValues[i];
+            valuesConsumed = i + 1;
+            if (i == 0 and leaderInfo->isBig()) {
+                continue;
+            }
+            if (unused > leaderInfo->getValue()) {
+                break;
+            }
+        }
+        if (unused < leaderInfo->getValue()) {
+            unusedValue = 0;
+        } else {
+            unusedValue = unused - leaderInfo->getValue();
+        }
+        return leaderInfo;
+    }
+
+    return nullptr;
 }
 
 const UnitInfo* TemplateZone::createStackLeader(std::size_t& unusedValue,
@@ -1682,7 +1729,7 @@ void TemplateZone::tightenGroup(std::size_t& unusedValue,
     // How many times we failed to pick a unit
     int failedAttempts{0};
     // How many failed attemts considered as a stop
-    const int totalFails{20};
+    const int totalFails{200};
 
     while (failedAttempts < totalFails && !positions.empty()
            && unusedValue >= getGameInfo()->getMinSoldierValue()) {
@@ -3024,6 +3071,7 @@ void TemplateZone::placeStacks()
         GroupInfo randomStackInfo;
         randomStackInfo.value = stackGroup.stacks.value / stackGroup.count;
         randomStackInfo.subraceTypes = stackGroup.stacks.subraceTypes;
+        randomStackInfo.leaderIds = stackGroup.stacks.leaderIds;
 
         for (; stackIndex < stackGroup.count; ++stackIndex) {
             auto stack{createStack(randomStackInfo, neutralOwner)};

@@ -65,6 +65,8 @@ struct GroupInfo
     // Custom stack name
     std::string name;
     AiPriority aiPriority;
+    // Required leaders ids
+    std::set<CMidgardID> leaderIds;
 };
 
 struct CityInfo
@@ -173,6 +175,8 @@ struct NeutralStacksInfo
     // Custom leader name
     std::string name;
     AiPriority aiPriority;
+    // Required leaders ids
+    std::set<CMidgardID> leaderIds;
 };
 
 struct StacksInfo
