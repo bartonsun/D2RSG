@@ -349,6 +349,10 @@ static void readGroup(GroupInfo& group, const sol::table& table)
     group.owner = table.get_or("owner", RaceType::Neutral);
     group.order = table.get_or("order", OrderType::Stand);
     group.name = readString(table, "name", "");
+    auto units = table.get<sol::optional<StringSet>>("leaderIds");
+    if (units.has_value()) {
+        readStringSet(group.leaderIds, units.value());
+    }
     readAiPriority(group.aiPriority, table);
 }
 
@@ -649,8 +653,11 @@ static void readStacks(StacksInfo& stacks, const std::vector<sol::table>& tables
         info.owner = table.get_or("owner", RaceType::Neutral);
         info.order = table.get_or("order", OrderType::Stand);
         info.name = readString(table, "name", "");
-
         readAiPriority(info.aiPriority, table);
+        auto units = table.get<sol::optional<StringSet>>("leaderIds");
+        if (units.has_value()) {
+            readStringSet(info.leaderIds, units.value());
+        }
 
         stacks.stackGroups.push_back(info);
     }
