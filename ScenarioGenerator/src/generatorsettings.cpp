@@ -71,7 +71,7 @@ static void readStringSet(std::set<CMidgardID>& ids, const StringSet& stringSet)
 
 static void readGeneratorOptions(const sol::table& table)
 {
-    generatorSettings.iterations = readValue(table, "iterations", 100, 100, 65535);
+    generatorSettings.iterations = readValue(table, "iterations", 100, 100, 1000000);
     generatorSettings.maxTemplateCustomParameters = readValue(table, "maxTemplateCustomParameters", 0, 0, 255);
     generatorSettings.enableParameterForest = readValue(table, "enableParameterForest", true);
     generatorSettings.enableParameterRoads = readValue(table, "enableParameterRoads", true);

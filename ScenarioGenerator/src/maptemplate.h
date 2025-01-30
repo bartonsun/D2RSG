@@ -45,6 +45,7 @@ struct MapTemplateSettings
     int startingGold{};
     int startingNativeMana{};
     int forest{}; // Percentage of unused tiles converted to forest after content placement
+    uint32_t iterations{};
 
     struct TemplateCustomParameter
     {

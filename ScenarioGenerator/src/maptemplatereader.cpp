@@ -988,6 +988,8 @@ static void readSettings(MapTemplateSettings& settings, const sol::state& lua)
     settings.startingNativeMana = readValue(table, "startingNativeMana", 0, 0, 9999);
     settings.forest = readValue(table, "forest", 0, 0, 100);
 
+    settings.iterations = readValue(table, "iterations", 0, 0, 1000000);
+
     auto parameters = table.get<OptionalTableArray>("customParameters");
     if (parameters.has_value()) {
         readTemplateCustomParameters(settings.parameters, parameters.value());
