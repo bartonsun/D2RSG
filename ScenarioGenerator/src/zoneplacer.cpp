@@ -69,7 +69,13 @@ void ZonePlacer::placeZones(RandomGenerator* random)
     DistanceVector distances;
     DistanceVector overlaps;
 
-    int iterations = getGeneratorSettings().iterations;
+    const int template_iterations = mapGenerator->mapGenOptions.mapTemplate->settings.iterations;
+    int iterations{};
+    if (template_iterations) {
+        iterations = template_iterations;
+    } else {
+        iterations = getGeneratorSettings().iterations;
+    }
     // Iterate until zones reach their desired size and fill map completely
     for (int i = 0; i < iterations; ++i) {
         // Attract connected zones

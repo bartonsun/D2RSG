@@ -84,7 +84,7 @@ struct GeneratorSettings
     // Maximum tree image index that is supported by all races. From IsoTerrn.ff
     std::uint8_t maxTreeImageIndex{};
     // Number of iterations for placing zones within an attempt
-    std::uint16_t iterations{};
+    std::uint32_t iterations{};
     // Maximum number of custom template parameters
     std::uint8_t maxTemplateCustomParameters{};
     // Enable forest spin on template generation page
