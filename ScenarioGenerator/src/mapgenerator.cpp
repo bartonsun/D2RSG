@@ -336,6 +336,10 @@ void MapGenerator::createDirectConnections()
                 zoneA->connectWithCenter(guardPos, true, true);
                 zoneB->connectWithCenter(guardPos, true, true);
 
+                if (!connection.size) {
+                    break;
+                }
+
                 const Stack* guard{zoneA->placeZoneGuard(guardPos, connection.guard)};
                 // Place next objects away from guard in both zones
                 zoneB->updateDistances(guardPos);
