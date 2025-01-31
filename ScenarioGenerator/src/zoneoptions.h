@@ -231,6 +231,7 @@ struct ZoneConnection
     GroupInfo guard;
     TemplateZoneId zoneFrom{0};
     TemplateZoneId zoneTo{0};
+    int size{1};
 };
 
 // Template zone settings

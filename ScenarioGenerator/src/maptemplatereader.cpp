@@ -787,6 +787,7 @@ static ZoneConnection createZoneConnection(const sol::table& table,
     if (guard.has_value()) {
         readGroup(connection.guard, guard.value());
     }
+    connection.size = readValue(table, "size", 1, 0, 1);
 
     return connection;
 }
