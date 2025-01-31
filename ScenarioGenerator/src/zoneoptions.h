@@ -82,6 +82,7 @@ struct CityInfo
     AiPriority aiPriority;
     // City tier
     std::uint8_t tier{1};
+    int gapMask{0};
 };
 
 struct CapitalInfo
@@ -93,6 +94,7 @@ struct CapitalInfo
     // Custom capital name
     std::string name;
     AiPriority aiPriority;
+    int gapMask{0};
 };
 
 struct RuinInfo

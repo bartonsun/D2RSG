@@ -133,6 +133,16 @@ public:
         aiPriority = priority;
     }
 
+    void setGapMask(int mask)
+    {
+        gapMask = mask;
+    }
+
+    int getGapMask()
+    {
+        return gapMask;
+    }
+
 protected:
     Fortification(const CMidgardID& fortificationId, const Position& size)
         : ScenarioObject(fortificationId)
@@ -147,6 +157,7 @@ protected:
     CMidgardID subraceId;
     CMidgardID stackId;
     AiPriority aiPriority;
+    int gapMask;
 };
 
 } // namespace rsg

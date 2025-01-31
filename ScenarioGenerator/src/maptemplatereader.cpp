@@ -371,6 +371,7 @@ static void readCity(CityInfo& city, const sol::table& table)
     city.owner = table.get_or("owner", RaceType::Neutral);
     city.tier = readValue(table, "tier", 1, 1, 5);
     city.name = readString(table, "name", "");
+    city.gapMask = readValue(table, "gapMask", 0, 0, 15);
     readAiPriority(city.aiPriority, table);
 }
 
@@ -407,6 +408,7 @@ static void readCapital(CapitalInfo& capital, const sol::table& table)
     }
 
     capital.name = readString(table, "name", "");
+    capital.gapMask = readValue(table, "gapMask", 0, 0, 15);
     readAiPriority(capital.aiPriority, table);
 }
 
