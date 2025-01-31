@@ -655,6 +655,19 @@ void TemplateZone::placeObject(std::unique_ptr<Fortification>&& fortification,
         mapGenerator->paintTerrain(tile, terrain, GroundType::Plain);
     }
 
+    if (fortification->getGapMask() > 0) {
+        std::set<Position> tiles = fortification->getTilesByMask(
+            fortification->getGapMask());
+        for (auto& tile : tiles) {
+            if (blocked.find(tile) != blocked.end()) {
+                continue;
+            } else if (!mapGenerator->map->isInTheMap(tile)) {
+                continue;
+            }
+            mapGenerator->setOccupied(tile, TileType::Free);
+        }
+    }
+
     // Update distances
     if (updateDistance) {
         updateDistances(position);
@@ -1881,6 +1894,7 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
     }
 
     village->setAiPriority(cityInfo.aiPriority);
+    village->setGapMask(cityInfo.gapMask);
 
     auto villagePtr{village.get()};
 
@@ -1966,6 +1980,8 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
 
         stack->setOwner(ownerId);
         stack->setSubrace(subraceId);
+        stack->setOrder(cityInfo.stack.order);
+        stack->setAiPriority(cityInfo.stack.aiPriority);
 
         placeObject(std::move(stack), position);
     }
@@ -2649,6 +2665,7 @@ void TemplateZone::placeCapital()
     }
 
     fort->setAiPriority(capital.aiPriority);
+    fort->setGapMask(capital.gapMask);
 
     auto ownerPlayer{mapGenerator->map->find<Player>(ownerId)};
     assert(ownerPlayer != nullptr);

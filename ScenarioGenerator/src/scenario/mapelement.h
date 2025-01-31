@@ -79,6 +79,35 @@ public:
         return blocked;
     }
 
+    std::set<Position> getTilesByMask(int mask) const
+    {
+        std::set<Position> tiles;
+
+        for (int x = 0; x < size.x; ++x) {
+            if ((mask&1) != 0) {
+                Position pos1{position.x + x, position.y - 1};
+                tiles.insert(pos1);
+            }
+            if ((mask&3) != 0) {
+                Position pos4{position.x + x, position.y + size.y};
+                tiles.insert(pos4);
+            }
+        }
+
+        for (int y = 0; y < size.y; ++y) {
+            if ((mask&2) != 0) {
+                Position pos2{position.x + size.x, position.y + y};
+                tiles.insert(pos2);
+            }
+            if ((mask&4) != 0) {
+                Position pos8{position.x - 1, position.y + y};
+                tiles.insert(pos8);
+            }
+        }
+
+        return tiles;
+    }
+
     std::set<Position> getBlockedOffsets() const
     {
         std::set<Position> offsets;
