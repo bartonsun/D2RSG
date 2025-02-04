@@ -332,13 +332,14 @@ void MapGenerator::createDirectConnections()
             guardPos = tile;
 
             if (guardPos.isValid()) {
-                // Zones can make paths only in their own area
-                zoneA->connectWithCenter(guardPos, true, true);
-                zoneB->connectWithCenter(guardPos, true, true);
 
                 if (!connection.size) {
                     break;
                 }
+
+                // Zones can make paths only in their own area
+                zoneA->connectWithCenter(guardPos, true, true);
+                zoneB->connectWithCenter(guardPos, true, true);
 
                 const Stack* guard{zoneA->placeZoneGuard(guardPos, connection.guard)};
                 // Place next objects away from guard in both zones
