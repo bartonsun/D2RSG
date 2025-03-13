@@ -96,3 +96,14 @@
 \item \texttt{Resource.RunicMana} - Мана рун
 \item \texttt{Resource.GroveMana} - Мана рощи
 \end{itemize}
+
+\subsubsection{Типы приказов}
+\label{orderTypes}
+Типы ресурсов известные генератору:
+\begin{itemize}
+\item \texttt{Order.Normal} - отряд может выполнять все действия доступные ИИ: перемещаться, нападать, отступать, применять предметы в руках, захватывать города и тд.
+\item \texttt{Order.Stand} - отряд не предпринимает никаких действий
+\item \texttt{Order.Guard} - отряд атакует вражеские отряды, которые попадают в квадрат 5x5. Игнорирует отряды с приказом \texttt{Order.Stand}
+\item \texttt{Order.Roam} - отряд будет перемещаться в поисках города. Может нападать на вражеские отряды, города или поднимать сундуки
+\item \texttt{Order.Bezerk} - будет атаковать любые вражеские отряды или города в поле зрения. Не садится в город. Игнорирует отряды с \texttt{aiPriority} = 0
+\end{itemize}

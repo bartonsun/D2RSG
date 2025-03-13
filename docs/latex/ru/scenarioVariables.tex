@@ -1,0 +1,20 @@
+\subsubsection{Переменные сценария}
+\label{scenarioVariables}
+Список переменных сценария, которые будут добавлены на сгенерированную карту.\\
+
+Обязательные поля:
+\begin{itemize}
+\item \texttt{name} - название переменной.
+\end{itemize}
+
+Необязательные поля:
+\begin{itemize}
+\item \texttt{value} - значение переменной. Диапазон [-999999999:999999999], по умолчанию 0.
+\end{itemize}
+
+Пример:\\
+Создание переменных сценария "myVar1" со значением 1 и "myVar2" со значением 9000.
+
+\begin{figure}[H]
+\lstinputlisting{docExamples/scenarioVariables1.lua}
+\end{figure}
