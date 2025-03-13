@@ -353,6 +353,18 @@ static void readGroup(GroupInfo& group, const sol::table& table)
     if (units.has_value()) {
         readStringSet(group.leaderIds, units.value());
     }
+    auto modifiers = table.get<sol::optional<std::vector<std::string>>>("leaderModifiers");
+    if (modifiers.has_value()) {
+        for (const auto& modifier : modifiers.value()) {
+            CMidgardID modifierId(modifier.c_str());
+
+            if (modifierId == invalidId || modifierId == emptyId) {
+                continue;
+            }
+
+            group.leaderModifiers.push_back(modifierId);
+        }
+    }
     readAiPriority(group.aiPriority, table);
 }
 
@@ -409,6 +421,7 @@ static void readCapital(CapitalInfo& capital, const sol::table& table)
 
     capital.name = readString(table, "name", "");
     capital.gapMask = readValue(table, "gapMask", 0, 0, 15);
+    capital.guardian = readValue(table, "guardian", true);
     readAiPriority(capital.aiPriority, table);
 }
 
@@ -660,6 +673,18 @@ static void readStacks(StacksInfo& stacks, const std::vector<sol::table>& tables
         if (units.has_value()) {
             readStringSet(info.leaderIds, units.value());
         }
+        auto modifiers = table.get<sol::optional<std::vector<std::string>>>("leaderModifiers");
+        if (modifiers.has_value()) {
+            for (const auto& modifier : modifiers.value()) {
+                CMidgardID modifierId(modifier.c_str());
+
+                if (modifierId == invalidId || modifierId == emptyId) {
+                    continue;
+                }
+
+                info.leaderModifiers.push_back(modifierId);
+            }
+        }
 
         stacks.stackGroups.push_back(info);
     }
@@ -849,7 +874,7 @@ static void readScenarioVariables(const std::vector<sol::table>& tables,
     for (const auto& table : tables) {
         MapTemplateScenarioVariables::ScenarioVariables scenarioVariable{};
         scenarioVariable.name = readString(table, "name", "");
-        scenarioVariable.value = readValue(table, "value", 0, 0, 999999999);
+        scenarioVariable.value = readValue(table, "value", 0, -2147483647, 2147483647);
         scenarioVariables.push_back(scenarioVariable);
     }
 }

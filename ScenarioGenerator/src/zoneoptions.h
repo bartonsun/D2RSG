@@ -67,6 +67,8 @@ struct GroupInfo
     AiPriority aiPriority;
     // Required leaders ids
     std::set<CMidgardID> leaderIds;
+    // Required leaders mofidicators
+    std::vector<CMidgardID> leaderModifiers;
 };
 
 struct CityInfo
@@ -95,6 +97,8 @@ struct CapitalInfo
     std::string name;
     AiPriority aiPriority;
     int gapMask{0};
+    // Generate capital guardian
+    bool guardian{true};
 };
 
 struct RuinInfo
@@ -179,6 +183,8 @@ struct NeutralStacksInfo
     AiPriority aiPriority;
     // Required leaders ids
     std::set<CMidgardID> leaderIds;
+    // Required leaders mofidicators
+    std::vector<CMidgardID> leaderModifiers;
 };
 
 struct StacksInfo
