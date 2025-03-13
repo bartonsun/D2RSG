@@ -41,7 +41,7 @@ public:
 
     void serialize(Serializer& serializer, const Map& scenario, const CMidgardID& groupId) const;
 
-private:
+//private:
     int getUnitIndex(const CMidgardID& unitId) const;
     const CMidgardID& getUnitId(std::size_t position) const;
 

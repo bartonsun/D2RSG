@@ -119,7 +119,7 @@ struct MapTemplateScenarioVariables
     struct ScenarioVariables
     {
         std::string name;
-        std::uint32_t value;
+        std::int32_t value;
     };
 
     std::vector<ScenarioVariables> scenarioVariables;

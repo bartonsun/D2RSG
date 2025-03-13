@@ -47,6 +47,7 @@
 #include <iterator>
 #include <sstream>
 
+
 namespace rsg {
 
 static Facing getRandomFacing(RandomGenerator& rand)
@@ -991,6 +992,15 @@ bool TemplateZone::guardObject(const MapElement& mapElement, const GroupInfo& gu
         Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
         if (leader) {
             leader->setName(guardInfo.name);
+        }
+    }
+
+    if (!guardInfo.leaderModifiers.empty()) {
+        Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
+        if (leader) {
+            for (auto modifierId : guardInfo.leaderModifiers) {
+                leader->addModifier(modifierId);
+            }
         }
     }
 
@@ -1980,6 +1990,23 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
 
         stack->setOwner(ownerId);
         stack->setSubrace(subraceId);
+
+        if (!cityInfo.stack.name.empty()) {
+            Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
+            if (leader) {
+                leader->setName(cityInfo.stack.name);
+            }
+        }
+
+        if (!cityInfo.stack.leaderModifiers.empty()) {
+            Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
+            if (leader) {
+                for (auto modifierId : cityInfo.stack.leaderModifiers) {
+                    leader->addModifier(modifierId);
+                }
+            }
+        }
+
         stack->setOrder(cityInfo.stack.order);
         stack->setAiPriority(cityInfo.stack.aiPriority);
 
@@ -2358,6 +2385,15 @@ Stack* TemplateZone::placeZoneGuard(const Position& position, const GroupInfo& g
         }
     }
 
+    if (!guardInfo.leaderModifiers.empty()) {
+        Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
+        if (leader) {
+            for (auto modifierId : guardInfo.leaderModifiers) {
+                leader->addModifier(modifierId);
+            }
+        }
+    }
+
     stack->setAiPriority(guardInfo.aiPriority);
     stack->setOrder(guardInfo.order);
 
@@ -2683,14 +2719,17 @@ void TemplateZone::placeCapital()
 
         // Create capital garrison
         std::size_t unusedValue{};
-        // Capital can fit entire group in its garrison. Slot 2 is reserved for a capital
-        // guardian
-        std::set<int> positions{0, 1, 3, 4, 5};
+        // Capital can fit entire group in its garrison.
+        std::set<int> positions{0, 1, 2, 3, 4, 5};
         GroupUnits units = {{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}};
-        units[2] = guardianInfo;
-        if (guardianInfo->isBig()) {
-            units[3] = guardianInfo;
-            positions.erase(3);
+        if (capital.guardian == true) {
+            // Slot 2 is reserved for a capital guardian
+            positions.erase(2);
+            units[2] = guardianInfo;
+            if (guardianInfo->isBig()) {
+                units[3] = guardianInfo;
+                positions.erase(3);
+            }
         }
 
         const auto& garrisonValue{garrison.value};
@@ -3103,6 +3142,15 @@ void TemplateZone::placeStacks()
                 Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
                 if (leader) {
                     leader->setName(stackGroup.name);
+                }
+            }
+
+            if (!stackGroup.leaderModifiers.empty()) {
+                Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
+                if (leader) {
+                    for (auto modifierId : stackGroup.leaderModifiers) {
+                        leader->addModifier(modifierId);
+                    }
                 }
             }
 
