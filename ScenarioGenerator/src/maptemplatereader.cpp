@@ -918,6 +918,11 @@ static void readContents(MapTemplate& mapTemplate, const sol::table& contentsTab
         contents.zones[options->id] = options;
     }
 
+    auto maxPlayers = readValue(contentsTable, "maxPlayers", 0, 0, 4);
+    if (maxPlayers > 0) {
+        mapTemplate.settings.maxPlayers = maxPlayers;
+    }
+
     const auto startingZones{
         std::count_if(contents.zones.begin(), contents.zones.end(), [](const auto& it) {
             auto& zoneOptions{it.second};
@@ -980,6 +985,27 @@ static void readContents(MapTemplate& mapTemplate, const sol::table& contentsTab
         mapTemplate.settings.forbiddenSpells.clear();
         readStringSet(mapTemplate.settings.forbiddenSpells, spells.value());
     }
+
+    auto roads = readValue(contentsTable, "roads", -1, -1, 100);
+    if (roads >= 0) {
+        mapTemplate.settings.roads = roads;
+    }
+
+    auto forest = readValue(contentsTable, "forest", -1, -1, 100);
+    if (forest >= 0) {
+        mapTemplate.settings.forest = forest;
+    }
+
+    auto startingGold = readValue(contentsTable, "startingGold", -1, -1, 9999);
+    if (startingGold >= 0) {
+        mapTemplate.settings.startingGold = startingGold;
+    }
+
+    auto startingNativeMana = readValue(contentsTable, "startingNativeMana", -1, -1, 9999);
+    if (startingNativeMana >= 0) {
+        mapTemplate.settings.startingNativeMana = startingNativeMana;
+    }
+    
 }
 
 static void readSettings(MapTemplateSettings& settings, const sol::state& lua)
