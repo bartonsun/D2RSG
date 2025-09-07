@@ -436,21 +436,6 @@ static void readCapital(CapitalInfo& capital, const sol::table& table)
     readAiPriority(capital.aiPriority, table);
 }
 
-static void readPlayerBuildings(std::vector<CMidgardID>& buildings, const sol::table& table)
-{
-    auto blds = table.get<sol::optional<std::vector<std::string>>>("player_buildings");
-    if (blds.has_value()) {
-        for (const auto& id : blds.value()) {
-            CMidgardID buildingId(id.c_str());
-
-            if (buildingId == invalidId || buildingId == emptyId) {
-                continue;
-            }
-
-            buildings.push_back(buildingId);
-        }
-    }
-}
 
 static void readRuin(RuinInfo& ruin, const sol::table& table)
 {
