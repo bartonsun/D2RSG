@@ -64,16 +64,6 @@ public:
         knownSpellsId = id;
     }
 
-      const CMidgardID& getBuildsId()
-    {
-        return buildsId;
-    }
-
-    void setBuildsId(const CMidgardID& id)
-    {
-        buildsId = id;
-    }
-
     const CMidgardID& getRace() const
     {
         return raceId;
@@ -116,7 +106,6 @@ private:
     CMidgardID fogId;
     CMidgardID buildingsId;
     CMidgardID knownSpellsId;
-    CMidgardID buildsId;
     CMidgardID raceId;
     CMidgardID lordId;
 };
