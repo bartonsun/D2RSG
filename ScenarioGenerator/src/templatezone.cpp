@@ -2817,7 +2817,8 @@ void TemplateZone::placeCapital()
     for (const auto& spellId : capital.spells) {
         knownSpells->add(spellId);
     }
-    // If there are known spells specified for player, add them
+
+    // If there are buildings specified for player, add them
     PlayerBuildings* playerBuildings{
         mapGenerator->map->find<PlayerBuildings>(ownerPlayer->getBuildingsId())};
     assert(playerBuildings);

@@ -23,7 +23,7 @@
 #include <set>
 
 namespace rsg {
-    //
+    
 class PlayerBuildings : public ScenarioObject
 {
 public:

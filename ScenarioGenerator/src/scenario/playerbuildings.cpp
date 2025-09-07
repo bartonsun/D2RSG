@@ -21,7 +21,7 @@
 #include "serializer.h"
 
 namespace rsg {
-    //
+    
 void PlayerBuildings::serialize(Serializer& serializer, const Map& scenario) const
 {
     serializer.enterRecord();
