@@ -21,7 +21,7 @@
 #include "serializer.h"
 
 namespace rsg {
-
+    //
 void PlayerBuildings::serialize(Serializer& serializer, const Map& scenario) const
 {
     serializer.enterRecord();
@@ -29,9 +29,19 @@ void PlayerBuildings::serialize(Serializer& serializer, const Map& scenario) con
     CMidgardID::String idString{};
     objectId.toString(idString);
 
-    serializer.serialize(idString.data(), 0);
+    serializer.serialize(idString.data(), static_cast<std::uint32_t>(builds.size()));
+
+    for (const auto& buildId : builds) {
+        serializer.serialize("BUILD_ID", buildId);
+    }
 
     serializer.leaveRecord();
 }
+
+void PlayerBuildings::add(const CMidgardID& buildId)
+{
+    builds.insert(buildId);
+}
+
 
 } // namespace rsg

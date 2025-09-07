@@ -93,6 +93,8 @@ struct CapitalInfo
     GroupInfo garrison;
     // Spells the player knowns from the start
     std::set<CMidgardID> spells;
+    // Buildings that must be present in capital
+    std::set<CMidgardID> buildings;
     // Custom capital name
     std::string name;
     AiPriority aiPriority;
