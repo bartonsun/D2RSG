@@ -20,9 +20,10 @@
 #pragma once
 
 #include "scenarioobject.h"
+#include <set>
 
 namespace rsg {
-
+    //
 class PlayerBuildings : public ScenarioObject
 {
 public:
@@ -38,6 +39,11 @@ public:
     }
 
     void serialize(Serializer& serializer, const Map& scenario) const override;
+
+    void add(const CMidgardID& buildId);
+
+private:
+    std::set<CMidgardID> builds;
 };
 
 } // namespace rsg
