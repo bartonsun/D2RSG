@@ -419,6 +419,17 @@ static void readCapital(CapitalInfo& capital, const sol::table& table)
         }
     }
 
+    auto buildings = table.get<sol::optional<std::set<std::string>>>("buildings");
+    if (buildings.has_value()) {
+        for (const auto& b : buildings.value()) {
+            CMidgardID buildingId(b.c_str());
+            if (buildingId == invalidId || buildingId == emptyId) {
+                continue;
+            }
+            capital.buildings.insert(buildingId);
+        }
+    }
+
     capital.name = readString(table, "name", "");
     capital.gapMask = readValue(table, "gapMask", 0, 0, 15);
     capital.guardian = readValue(table, "guardian", true);
