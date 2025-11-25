@@ -49,6 +49,26 @@ public:
         tier = value;
     }
 
+    void setRegen(int value)
+    {
+        regen = value;
+    }
+
+    void setGrowthTurn(int value)
+    {
+        growthTurn = value;
+    }
+
+    void setRiotTurn(int value)
+    {
+        riotTurn = value;
+    }
+
+    void setProtectionId(CMidgardID value)
+    {
+        protectionId = value;
+    }
+
 private:
     CMidgardID protectionId;
     int regen{};

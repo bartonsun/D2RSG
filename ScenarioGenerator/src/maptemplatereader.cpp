@@ -382,6 +382,10 @@ static void readCity(CityInfo& city, const sol::table& table)
 
     city.owner = table.get_or("owner", RaceType::Neutral);
     city.tier = readValue(table, "tier", 1, 1, 5);
+    city.regen = readValue(table, "regen", 0, -100, 100);
+    city.growthTurn = readValue(table, "growthTurn", 0, 0, 9999);
+    city.riotTurn = readValue(table, "riotTurn", 0, 0, 9999);
+    readId(city.protectionId, table, "protectionId");
     city.name = readString(table, "name", "");
     city.gapMask = readValue(table, "gapMask", 0, 0, 15);
     readAiPriority(city.aiPriority, table);

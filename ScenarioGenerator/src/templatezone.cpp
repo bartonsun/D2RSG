@@ -1897,6 +1897,10 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
     village->setOwner(ownerId);
     village->setSubrace(subraceId);
     village->setTier(cityInfo.tier);
+    village->setRegen(cityInfo.regen);
+    village->setGrowthTurn(cityInfo.growthTurn);
+    village->setRiotTurn(cityInfo.riotTurn);
+    village->setProtectionId(cityInfo.protectionId);
 
     if (cityInfo.name.empty()) {
         village->setName(*getRandomElement(getGameInfo()->getCityNames(), rand));

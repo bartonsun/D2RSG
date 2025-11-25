@@ -84,6 +84,15 @@ struct CityInfo
     AiPriority aiPriority;
     // City tier
     std::uint8_t tier{1};
+    // Change the base city's regeneration by the specified percentage
+    std::int8_t regen;
+    // Blocks city upgrades until the specified turn ends
+    std::int16_t growthTurn;
+    // Riot until specified turn
+    std::int16_t riotTurn;
+    // Modifier for all defenders units
+    CMidgardID protectionId;
+    //
     int gapMask{0};
 };
 
