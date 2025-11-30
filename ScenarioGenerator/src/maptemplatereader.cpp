@@ -331,7 +331,7 @@ static void readLoot(LootInfo& loot, const sol::table& table)
 
 static void readGroup(GroupInfo& group, const sol::table& table)
 {
-    auto subraceTypes = table.get<sol::optional<decltype(group.subraceTypes)>>("subraceTypes");
+    auto subraceTypes = table.get<sol::optional<decltype(group.subraceTypes)>>("subraceTypes"); 
     if (subraceTypes.has_value()) {
         group.subraceTypes = subraceTypes.value();
     }
@@ -345,13 +345,17 @@ static void readGroup(GroupInfo& group, const sol::table& table)
     if (loot.has_value()) {
         readLoot(group.loot, loot.value());
     }
+}
 
-    group.owner = table.get_or("owner", RaceType::Neutral);
-    group.order = table.get_or("order", OrderType::Stand);
-    group.name = readString(table, "name", "");
+static void readStack(StackInfo& info, sol::table table)
+{
+    readGroup(info.groupInfo, table);
+    info.owner = table.get_or("owner", RaceType::Neutral);
+    info.order = table.get_or("order", OrderType::Stand);
+    info.name = readString(table, "name", "");
     auto units = table.get<sol::optional<StringSet>>("leaderIds");
     if (units.has_value()) {
-        readStringSet(group.leaderIds, units.value());
+        readStringSet(info.leaderIds, units.value());
     }
     auto modifiers = table.get<sol::optional<std::vector<std::string>>>("leaderModifiers");
     if (modifiers.has_value()) {
@@ -362,10 +366,10 @@ static void readGroup(GroupInfo& group, const sol::table& table)
                 continue;
             }
 
-            group.leaderModifiers.push_back(modifierId);
+            info.leaderModifiers.push_back(modifierId);
         }
     }
-    readAiPriority(group.aiPriority, table);
+    readAiPriority(info.aiPriority, table);
 }
 
 static void readCity(CityInfo& city, const sol::table& table)
@@ -377,7 +381,7 @@ static void readCity(CityInfo& city, const sol::table& table)
 
     auto stack = table.get<OptionalTable>("stack");
     if (stack.has_value()) {
-        readGroup(city.stack, stack.value());
+        readStack(city.stack, stack.value());
     }
 
     city.owner = table.get_or("owner", RaceType::Neutral);
@@ -482,7 +486,7 @@ static void readMerchant(MerchantInfo& merchant, const sol::table& table)
 
     auto guard = table.get<OptionalTable>("guard");
     if (guard.has_value()) {
-        readGroup(merchant.guard, guard.value());
+        readStack(merchant.guard, guard.value());
     }
 
     merchant.name = readString(table, "name", "");
@@ -507,7 +511,7 @@ static void readMage(MageInfo& mage, const sol::table& table)
 {
     auto guard = table.get<OptionalTable>("guard");
     if (guard.has_value()) {
-        readGroup(mage.guard, guard.value());
+        readStack(mage.guard, guard.value());
     }
 
     auto spellTypes = table.get<sol::optional<decltype(mage.spellTypes)>>("spellTypes");
@@ -595,7 +599,7 @@ static void readMercenary(MercenaryInfo& mercenary, const sol::table& table)
 
     auto guard = table.get<OptionalTable>("guard");
     if (guard.has_value()) {
-        readGroup(mercenary.guard, guard.value());
+        readStack(mercenary.guard, guard.value());
     }
 
     mercenary.name = readString(table, "name", "");
@@ -650,7 +654,7 @@ static void readResourceMarket(ResourceMarketInfo& market, const sol::table& tab
 
     auto guard = table.get<OptionalTable>("guard");
     if (guard.has_value()) {
-        readGroup(market.guard, guard.value());
+        readStack(market.guard, guard.value());
     }
 
     market.name = readString(table, "name", "");
@@ -676,30 +680,9 @@ static void readStacks(StacksInfo& stacks, const std::vector<sol::table>& tables
     stacks.stackGroups.reserve(tables.size());
 
     for (auto& table : tables) {
-        NeutralStacksInfo info{};
-
-        readGroup(info.stacks, table);
+        StackInfo info{};
+        readStack(info, table);
         info.count = readValue(table, "count", 0, 0);
-        info.owner = table.get_or("owner", RaceType::Neutral);
-        info.order = table.get_or("order", OrderType::Stand);
-        info.name = readString(table, "name", "");
-        readAiPriority(info.aiPriority, table);
-        auto units = table.get<sol::optional<StringSet>>("leaderIds");
-        if (units.has_value()) {
-            readStringSet(info.leaderIds, units.value());
-        }
-        auto modifiers = table.get<sol::optional<std::vector<std::string>>>("leaderModifiers");
-        if (modifiers.has_value()) {
-            for (const auto& modifier : modifiers.value()) {
-                CMidgardID modifierId(modifier.c_str());
-
-                if (modifierId == invalidId || modifierId == emptyId) {
-                    continue;
-                }
-
-                info.leaderModifiers.push_back(modifierId);
-            }
-        }
 
         stacks.stackGroups.push_back(info);
     }
@@ -725,7 +708,7 @@ static void readTrainers(std::vector<TrainerInfo>& trainers, const std::vector<s
 
         auto guard = table.get<OptionalTable>("guard");
         if (guard.has_value()) {
-            readGroup(info.guard, guard.value());
+            readStack(info.guard, guard.value());
         }
 
         info.name = readString(table, "name", "");
@@ -825,7 +808,7 @@ static ZoneConnection createZoneConnection(const sol::table& table,
 
     auto guard = table.get<OptionalTable>("guard");
     if (guard.has_value()) {
-        readGroup(connection.guard, guard.value());
+        readStack(connection.guard, guard.value());
     }
     connection.size = readValue(table, "size", 1, 0, 1);
 

@@ -173,7 +173,7 @@ struct TemplateZone : public ZoneOptions
 
     void placeMountain(const Position& position, const Position& size, int image);
 
-    bool guardObject(const MapElement& mapElement, const GroupInfo& guardInfo);
+    bool guardObject(const MapElement& mapElement, const StackInfo& stackInfo);
 
     void updateDistances(const Position& position);
 
@@ -196,8 +196,8 @@ struct TemplateZone : public ZoneOptions
     // Connect specified 'source' tile to nearest free tile with zone
     bool connectPath(const Position& source, bool onlyStraight);
 
-    // Creates stack with loot from specified group information
-    std::unique_ptr<Stack> createStack(const GroupInfo& stackInfo, bool neutralOwner);
+    // Creates stack with loot from specified stack information
+    std::unique_ptr<Stack> createStack(const StackInfo& stackInfo, bool neutralOwner);
 
     // Creates stack with specified leader and soldier units
     std::unique_ptr<Stack> createStack(const UnitInfo& leaderInfo,
@@ -240,7 +240,7 @@ struct TemplateZone : public ZoneOptions
     Site* placeTrainer(const Position& position, const TrainerInfo& trainerInfo);
     Site* placeMarket(const Position& position, const ResourceMarketInfo& marketInfo);
     Ruin* placeRuin(const Position& position, const RuinInfo& ruinInfo);
-    Stack* placeZoneGuard(const Position& position, const GroupInfo& guardInfo);
+    Stack* placeZoneGuard(const Position& position, const StackInfo& guardInfo);
     Bag* placeBag(const Position& position);
 
     std::vector<std::pair<CMidgardID, int>> createLoot(const LootInfo& loot,

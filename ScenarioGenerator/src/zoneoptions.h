@@ -60,9 +60,20 @@ struct GroupInfo
     RandomValue<std::uint32_t> value{};
     // Race that controls the stacks
     RaceType owner{RaceType::Neutral};
+    AiPriority aiPriority;
+};
+
+struct StackInfo
+{
+    // GroupInfo used to describe value and loot of entire group
+    GroupInfo groupInfo;
+    // Number of stacks to create
+    std::uint32_t count{};
+    // Race that controls the stacks
+    RaceType owner{RaceType::Neutral};
     // Stack order
-    OrderType order{OrderType::Stand};
-    // Custom stack name
+    OrderType order{OrderType::Normal};
+    // Custom leader name
     std::string name;
     AiPriority aiPriority;
     // Required leaders ids
@@ -76,7 +87,7 @@ struct CityInfo
     // City garrison defenders and items
     GroupInfo garrison;
     // Stack that is visiting the city
-    GroupInfo stack;
+    StackInfo stack;
     // Custom city name
     std::string name;
     // Race that controls the city
@@ -127,7 +138,7 @@ struct RuinInfo
 struct MerchantInfo
 {
     // Stack that is guarding the merchant
-    GroupInfo guard;
+    StackInfo guard;
     // Merchant items
     LootInfo items;
     // Custom merchant name and description
@@ -139,7 +150,7 @@ struct MerchantInfo
 struct MageInfo
 {
     // Stack that is guarding the mage
-    GroupInfo guard;
+    StackInfo guard;
     // Types of spells merchant is allowed to sell
     std::set<SpellType> spellTypes;
     // Spells that merchant must sell, regardless of spellTypes and value
@@ -164,7 +175,7 @@ struct MercenaryUnitInfo
 struct MercenaryInfo
 {
     // Stack that is guarding the mercenary camp
-    GroupInfo guard;
+    StackInfo guard;
     // Subraces of units allowed for hire
     std::set<SubRaceType> subraceTypes;
     // Units that must be generated
@@ -179,29 +190,10 @@ struct MercenaryInfo
     AiPriority aiPriority;
 };
 
-struct NeutralStacksInfo
-{
-    // GroupInfo used to describe value and loot of entire group
-    GroupInfo stacks;
-    // Number of stacks to create
-    std::uint32_t count{};
-    // Race that controls the stacks
-    RaceType owner{RaceType::Neutral};
-    // Stack order
-    OrderType order{OrderType::Normal};
-    // Custom leader name
-    std::string name;
-    AiPriority aiPriority;
-    // Required leaders ids
-    std::set<CMidgardID> leaderIds;
-    // Required leaders mofidicators
-    std::vector<CMidgardID> leaderModifiers;
-};
-
 struct StacksInfo
 {
     // Several neutral stack groups each with the same generation parameters
-    std::vector<NeutralStacksInfo> stackGroups;
+    std::vector<StackInfo> stackGroups;
 };
 
 struct BagInfo
@@ -213,7 +205,7 @@ struct BagInfo
 
 struct TrainerInfo
 {
-    GroupInfo guard;
+    StackInfo guard;
     // Custom trainer name and description
     std::string name;
     std::string description;
@@ -231,7 +223,7 @@ struct ResourceMarketStock
 struct ResourceMarketInfo
 {
     // Stack that is guarding resource market
-    GroupInfo guard;
+    StackInfo guard;
     // Custom exchange rates, if specified
     std::string exchangeRates;
     // Market resources
@@ -245,7 +237,7 @@ struct ResourceMarketInfo
 // Connection between two zones in template
 struct ZoneConnection
 {
-    GroupInfo guard;
+    StackInfo guard;
     TemplateZoneId zoneFrom{0};
     TemplateZoneId zoneTo{0};
     int size{1};

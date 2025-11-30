@@ -952,7 +952,7 @@ void TemplateZone::placeMountain(const Position& position, const Position& size,
     mapGenerator->map->addMountain(position, size, image);
 }
 
-bool TemplateZone::guardObject(const MapElement& mapElement, const GroupInfo& guardInfo)
+bool TemplateZone::guardObject(const MapElement& mapElement, const StackInfo& guardInfo)
 {
     const auto tiles{getAccessibleTiles(mapElement)};
     Position guardTile{-1, -1};
@@ -1327,9 +1327,9 @@ bool TemplateZone::connectPath(const Position& source, bool onlyStraight)
     return false;
 }
 
-std::unique_ptr<Stack> TemplateZone::createStack(const GroupInfo& stackInfo, bool neutralOwner)
+std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, bool neutralOwner)
 {
-    const auto& stackValue{stackInfo.value};
+    const auto& stackValue{stackInfo.groupInfo.value};
     if (!stackValue) {
         return nullptr;
     }
@@ -1368,7 +1368,7 @@ std::unique_ptr<Stack> TemplateZone::createStack(const GroupInfo& stackInfo, boo
 
     if (!leaderInfo) {
         leaderInfo = createStackLeader(unusedValue, valuesConsumed, unitValues,
-                                       stackInfo.subraceTypes);
+                                       stackInfo.groupInfo.subraceTypes);
     }
 
     if (!leaderInfo) {
@@ -1410,13 +1410,13 @@ std::unique_ptr<Stack> TemplateZone::createStack(const GroupInfo& stackInfo, boo
         std::vector<std::size_t> soldierValues(unitValues.begin() + valuesConsumed,
                                                unitValues.end());
 
-        createGroup(unusedValue, positions, soldiers, soldierValues, stackInfo.subraceTypes);
+        createGroup(unusedValue, positions, soldiers, soldierValues, stackInfo.groupInfo.subraceTypes);
     }
 
     // Check if we still have unused value and free positions in group.
     // This should help with better stack value usage
     // and reduce number of stacks with single ranged or support leader
-    tightenGroup(unusedValue, positions, soldiers, stackInfo.subraceTypes);
+    tightenGroup(unusedValue, positions, soldiers, stackInfo.groupInfo.subraceTypes);
 
     if (mapGenerator->isDebugMode()) {
         // +1 because of leader
@@ -1472,7 +1472,7 @@ std::unique_ptr<Stack> TemplateZone::createStack(const GroupInfo& stackInfo, boo
         }
     }
 
-    auto stackLoot{createLoot(stackInfo.loot)};
+    auto stackLoot{createLoot(stackInfo.groupInfo.loot)};
     auto& stackInventory{stack->getInventory()};
 
     for (const auto& [id, amount] : stackLoot) {
@@ -2360,9 +2360,9 @@ Ruin* TemplateZone::placeRuin(const Position& position, const RuinInfo& ruinInfo
     return ruinPtr;
 }
 
-Stack* TemplateZone::placeZoneGuard(const Position& position, const GroupInfo& guardInfo)
+Stack* TemplateZone::placeZoneGuard(const Position& position, const StackInfo& guardInfo)
 {
-    if (!guardInfo.value) {
+    if (!guardInfo.groupInfo.value) {
         // No guard at all
         return nullptr;
     }
@@ -3085,7 +3085,7 @@ void TemplateZone::placeStacks()
     const std::size_t stacksTotal = std::accumulate(stacks.stackGroups.begin(),
                                                     stacks.stackGroups.end(), 0u,
                                                     [](std::uint32_t val,
-                                                       const NeutralStacksInfo& info) {
+                                                       const StackInfo& info) {
                                                         return info.count + val;
                                                     });
     std::vector<Position> positions(stacksTotal);
@@ -3138,10 +3138,10 @@ void TemplateZone::placeStacks()
         std::vector<Stack*> randomStacks(stackGroup.count);
         std::size_t stackIndex{};
         // Generate and place all random stacks, value is split evenly
-        GroupInfo randomStackInfo;
-        randomStackInfo.value = stackGroup.stacks.value / stackGroup.count;
-        randomStackInfo.subraceTypes = stackGroup.stacks.subraceTypes;
-        randomStackInfo.leaderIds = stackGroup.stacks.leaderIds;
+        StackInfo randomStackInfo;
+        randomStackInfo.groupInfo.value = stackGroup.groupInfo.value / stackGroup.count;
+        randomStackInfo.groupInfo.subraceTypes = stackGroup.groupInfo.subraceTypes;
+        randomStackInfo.leaderIds = stackGroup.leaderIds;
 
         for (; stackIndex < stackGroup.count; ++stackIndex) {
             auto stack{createStack(randomStackInfo, neutralOwner)};
@@ -3176,7 +3176,7 @@ void TemplateZone::placeStacks()
         }
 
         // Compute loot value for a single stack in group
-        const auto& stackGroupLoot{stackGroup.stacks.loot};
+        const auto& stackGroupLoot{stackGroup.groupInfo.loot};
         LootInfo stackLoot;
         stackLoot.value = stackGroupLoot.value / stackGroup.count;
         stackLoot.itemTypes = stackGroupLoot.itemTypes;
