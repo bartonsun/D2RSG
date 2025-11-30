@@ -58,9 +58,6 @@ struct GroupInfo
     LootInfo loot;
     // Group units value
     RandomValue<std::uint32_t> value{};
-    // Race that controls the stacks
-    RaceType owner{RaceType::Neutral};
-    AiPriority aiPriority;
 };
 
 struct StackInfo
