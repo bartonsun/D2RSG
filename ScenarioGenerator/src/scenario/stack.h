@@ -132,6 +132,41 @@ public:
         return inventory;
     }
 
+    void setBannerId(const CMidgardID& id)
+    {
+        bannerId = id;
+    }
+
+    void setTomeId(const CMidgardID& id)
+    {
+        tomeId = id;
+    }
+
+    void setBattle1Id(const CMidgardID& id)
+    {
+        battle1Id = id;
+    }
+
+    void setBattle2Id(const CMidgardID& id)
+    {
+        battle2Id = id;
+    }
+
+    void setArtifact1Id(const CMidgardID& id)
+    {
+        artifact1Id = id;
+    }
+
+    void setArtifact2Id(const CMidgardID& id)
+    {
+        artifact2Id = id;
+    }
+
+    void setBootsId(const CMidgardID& id)
+    {
+        bootsId = id;
+    }
+
     void setAiPriority(AiPriority priority)
     {
         aiPriority = priority;

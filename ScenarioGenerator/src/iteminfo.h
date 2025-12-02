@@ -32,6 +32,7 @@ public:
     virtual ~ItemInfo() = default;
 
     virtual const CMidgardID& getItemId() const = 0;
+    virtual const CMidgardID& getModEquipId() const = 0;
     virtual ItemType getItemType() const = 0;
 
     virtual int getValue() const = 0;

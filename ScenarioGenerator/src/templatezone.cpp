@@ -996,18 +996,6 @@ bool TemplateZone::guardObject(const MapElement& mapElement, const StackInfo& gu
         }
     }
 
-    if (!guardInfo.leaderModifiers.empty()) {
-        Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
-        if (leader) {
-            for (auto modifierId : guardInfo.leaderModifiers) {
-                leader->addModifier(modifierId);
-            }
-        }
-    }
-
-    stack->setAiPriority(guardInfo.aiPriority);
-    stack->setOrder(guardInfo.order);
-
     placeObject(std::move(stack), guardTile);
 
     return true;
@@ -1445,6 +1433,9 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
 
     auto stack{createStack(*leaderInfo, leaderPosition, soldiers, neutralOwner)};
 
+    stack->setAiPriority(stackInfo.aiPriority);
+    stack->setOrder(stackInfo.order);
+
     // Make sure we create leader with correct leadership value
     int leadershipRequired = leaderInfo->isBig() ? 2 : 1;
 
@@ -1464,8 +1455,8 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
     }
 
     if (leaderInfo->getLeadership() < leadershipRequired) {
-        const int diff = leadershipRequired - leaderInfo->getLeadership();
         Unit* leaderUnit = mapGenerator->map->find<Unit>(stack->getLeader());
+        const int diff = leadershipRequired - leaderInfo->getLeadership();
 
         for (int i = 0; i < diff; ++i) {
             leaderUnit->addModifier(CMidgardID("G000UM9031")); // +1 Leadership
@@ -1485,6 +1476,17 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
             stackInventory.add(itemId);
         }
     }
+
+    if (!stackInfo.leaderModifiers.empty()) {
+        Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
+        if (leader) {
+            for (auto modifierId : stackInfo.leaderModifiers) {
+                leader->addModifier(modifierId);
+            }
+        }
+    }
+
+    createStackEquipment(stackInfo, stack.get());
 
     return stack;
 }
@@ -2003,18 +2005,6 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
             }
         }
 
-        if (!cityInfo.stack.leaderModifiers.empty()) {
-            Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
-            if (leader) {
-                for (auto modifierId : cityInfo.stack.leaderModifiers) {
-                    leader->addModifier(modifierId);
-                }
-            }
-        }
-
-        stack->setOrder(cityInfo.stack.order);
-        stack->setAiPriority(cityInfo.stack.aiPriority);
-
         placeObject(std::move(stack), position);
     }
 
@@ -2390,18 +2380,6 @@ Stack* TemplateZone::placeZoneGuard(const Position& position, const StackInfo& g
         }
     }
 
-    if (!guardInfo.leaderModifiers.empty()) {
-        Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
-        if (leader) {
-            for (auto modifierId : guardInfo.leaderModifiers) {
-                leader->addModifier(modifierId);
-            }
-        }
-    }
-
-    stack->setAiPriority(guardInfo.aiPriority);
-    stack->setOrder(guardInfo.order);
-
     Stack* stackPtr{stack.get()};
     placeObject(std::move(stack), position);
 
@@ -2510,6 +2488,126 @@ std::vector<std::pair<CMidgardID, int>> TemplateZone::createLoot(const LootInfo&
     }
 
     return items;
+}
+
+CMidgardID TemplateZone::createStackEquipmentItem(const rsg::CMidgardID& itemEquipId,
+                                                  Stack* stack,
+                                                  const std::vector<ItemType>& allowedTypes)
+{
+    if (itemEquipId == emptyId) {
+        return emptyId;
+    }
+    auto& rand{mapGenerator->randomGenerator};
+    auto leaderUnit = mapGenerator->map->find<Unit>(stack->getLeader());
+    auto group = stack->getGroup();
+    auto& stackInventory{stack->getInventory()};
+
+    auto itemId{mapGenerator->createId(CMidgardID::Type::Item)};
+    auto item{std::make_unique<Item>(itemId)};
+    item->setItemType(itemEquipId);
+
+    const auto& itemsInfo = getGameInfo()->getItemsInfo();
+    auto it = itemsInfo.find(itemEquipId);
+    const ItemInfo* itemInfo = it->second.get();
+    const ItemType& itemType = itemInfo->getItemType();
+
+    bool typeAllowed = false;
+    for (const auto& allowedType : allowedTypes) {
+        if (itemType == allowedType) {
+            typeAllowed = true;
+            break;
+        }
+    }
+
+    if (!typeAllowed) {
+        return emptyId;
+    }
+
+    mapGenerator->insertObject(std::move(item));
+    stackInventory.add(itemId);
+
+    CMidgardID itemTypeModId{};
+    if (itemType == ItemType::Armor || itemType == ItemType::Weapon) {
+        itemTypeModId = "g000um9023";
+    } else if (itemType == ItemType::Jewel) {
+        itemTypeModId = "g000um9024";
+    } else if (itemType == ItemType::Banner) {
+        itemTypeModId = "g000um9025";
+    } else if (itemType == ItemType::TravelItem) {
+        itemTypeModId = "g000um9026";
+    } else if (itemType == ItemType::Orb) {
+        itemTypeModId = "g000um9027";
+    } else if (itemType == ItemType::Talisman) {
+        itemTypeModId = "g000um9028";
+    }
+
+    if (itemTypeModId != emptyId) {
+        leaderUnit->addModifier(itemTypeModId);
+    }
+
+    const CMidgardID& itemModId = itemInfo->getModEquipId();
+    CMidgardID modifierId(itemModId);
+
+    if (modifierId != emptyId) {
+
+        if (itemType == ItemType::Banner) {
+            for (int position = 0; position < 6; ++position) {
+                const CMidgardID& unitId = group.units[position];
+                if (unitId == emptyId) {
+                    continue;
+                }
+
+                auto unit = mapGenerator->map->find<Unit>(unitId);
+                if (!unit) {
+                    continue;
+                }
+
+                unit->addModifier(modifierId);
+            }
+        } else {
+            leaderUnit->addModifier(itemModId);
+        }
+    }
+
+    return itemId;
+}
+
+void TemplateZone::createStackEquipment(const StackInfo& stackInfo, Stack* stack)
+{
+    std::vector<ItemType> battleSlotTypes = {ItemType::PotionBoost,  ItemType::PotionPermanent,
+                                             ItemType::PotionRevive, ItemType::PotionHeal,
+                                             ItemType::Orb,          ItemType::Talisman};
+    std::vector<ItemType> artifactSlotTypes = {ItemType::Armor, ItemType::Weapon};
+
+    auto bannerId = createStackEquipmentItem(stackInfo.bannerId, stack, {ItemType::Banner});
+    auto tomeId = createStackEquipmentItem(stackInfo.tomeId, stack, {ItemType::Jewel});
+    auto battle1Id = createStackEquipmentItem(stackInfo.battle1Id, stack, battleSlotTypes);
+    auto battle2Id = createStackEquipmentItem(stackInfo.battle2Id, stack, battleSlotTypes);
+    auto artifact1Id = createStackEquipmentItem(stackInfo.artifact1Id, stack, artifactSlotTypes);
+    auto artifact2Id = createStackEquipmentItem(stackInfo.artifact2Id, stack, artifactSlotTypes);
+    auto bootsId = createStackEquipmentItem(stackInfo.bootsId, stack, {ItemType::TravelItem});
+
+    if (bannerId != emptyId) {
+        stack->setBannerId(bannerId);
+    }
+    if (tomeId != emptyId) {
+        stack->setTomeId(tomeId);
+    }
+    if (battle1Id != emptyId) {
+        stack->setBattle1Id(battle1Id);
+    }
+    if (battle2Id != emptyId) {
+        stack->setBattle2Id(battle2Id);
+    }
+    if (artifact1Id != emptyId) {
+        stack->setArtifact1Id(artifact1Id);
+    }
+    if (artifact2Id != emptyId) {
+        stack->setArtifact2Id(artifact2Id);
+    }
+    if (bootsId != emptyId) {
+        stack->setBootsId(bootsId);
+    }
 }
 
 CMidgardID TemplateZone::createRuinLoot(const LootInfo& loot)
@@ -3142,6 +3240,17 @@ void TemplateZone::placeStacks()
         randomStackInfo.groupInfo.value = stackGroup.groupInfo.value / stackGroup.count;
         randomStackInfo.groupInfo.subraceTypes = stackGroup.groupInfo.subraceTypes;
         randomStackInfo.leaderIds = stackGroup.leaderIds;
+        randomStackInfo.leaderModifiers = stackGroup.leaderModifiers;
+        randomStackInfo.aiPriority = stackGroup.aiPriority;
+        randomStackInfo.order = stackGroup.order;
+
+        randomStackInfo.bannerId = stackGroup.bannerId;
+        randomStackInfo.tomeId = stackGroup.tomeId;
+        randomStackInfo.battle1Id = stackGroup.battle1Id;
+        randomStackInfo.battle2Id = stackGroup.battle2Id;
+        randomStackInfo.artifact1Id = stackGroup.artifact1Id;
+        randomStackInfo.artifact2Id = stackGroup.artifact2Id;
+        randomStackInfo.bootsId = stackGroup.bootsId;
 
         for (; stackIndex < stackGroup.count; ++stackIndex) {
             auto stack{createStack(randomStackInfo, neutralOwner)};
@@ -3158,18 +3267,6 @@ void TemplateZone::placeStacks()
                     leader->setName(stackGroup.name);
                 }
             }
-
-            if (!stackGroup.leaderModifiers.empty()) {
-                Unit* leader{mapGenerator->map->find<Unit>(stack->getLeader())};
-                if (leader) {
-                    for (auto modifierId : stackGroup.leaderModifiers) {
-                        leader->addModifier(modifierId);
-                    }
-                }
-            }
-
-            stack->setAiPriority(stackGroup.aiPriority);
-            stack->setOrder(stackGroup.order);
 
             randomStacks[stackIndex] = stack.get();
             placeObject(std::move(stack), positions[positionIndex++]);

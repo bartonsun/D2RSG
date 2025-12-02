@@ -247,6 +247,11 @@ struct TemplateZone : public ZoneOptions
                                                        bool forMerchant = false);
     CMidgardID createRuinLoot(const LootInfo& loot);
 
+    void createStackEquipment(const StackInfo& stackInfo, Stack* stack);
+    CMidgardID createStackEquipmentItem(const rsg::CMidgardID& itemEquipId,
+                                        Stack* stack,
+                                        const std::vector<ItemType>& allowedTypes);
+
     void initTerrain();
     void fractalize();
     void placeCapital();

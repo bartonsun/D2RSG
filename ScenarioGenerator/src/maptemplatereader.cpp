@@ -329,6 +329,17 @@ static void readLoot(LootInfo& loot, const sol::table& table)
     }
 }
 
+static void readEquipment(StackInfo& info, sol::table table)
+{
+    readId(info.bannerId, table, "banner");
+    readId(info.tomeId, table, "tome");
+    readId(info.battle1Id, table, "battle1");
+    readId(info.battle2Id, table, "battle2");
+    readId(info.artifact1Id, table, "artifact1");
+    readId(info.artifact2Id, table, "artifact2");
+    readId(info.bootsId, table, "boots");
+}
+
 static void readGroup(GroupInfo& group, const sol::table& table)
 {
     auto subraceTypes = table.get<sol::optional<decltype(group.subraceTypes)>>("subraceTypes"); 
@@ -368,6 +379,10 @@ static void readStack(StackInfo& info, sol::table table)
 
             info.leaderModifiers.push_back(modifierId);
         }
+    }
+    auto equipment = table.get<OptionalTable>("equipment");
+    if (equipment.has_value()) {
+        readEquipment(info, equipment.value());
     }
     readAiPriority(info.aiPriority, table);
 }

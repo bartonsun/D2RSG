@@ -77,6 +77,14 @@ struct StackInfo
     std::set<CMidgardID> leaderIds;
     // Required leaders mofidicators
     std::vector<CMidgardID> leaderModifiers;
+    // Leader equipment
+    CMidgardID bannerId;
+    CMidgardID tomeId;
+    CMidgardID battle1Id;
+    CMidgardID battle2Id;
+    CMidgardID artifact1Id;
+    CMidgardID artifact2Id;
+    CMidgardID bootsId;
 };
 
 struct CityInfo
