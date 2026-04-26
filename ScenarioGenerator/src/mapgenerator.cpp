@@ -717,6 +717,27 @@ CMidgardID MapGenerator::getSubraceId(RaceType race) const
     return it->second.second;
 }
 
+std::map<SubRaceType, CMidgardID> subraceCache;
+
+CMidgardID MapGenerator::getSubraceId(SubRaceType subraceType)
+{
+    auto it = subraceCache.find(subraceType);
+    if (it != subraceCache.end())
+        return it->second;
+
+    // Create neutral subrace
+    CMidgardID subraceId = createId(CMidgardID::Type::SubRace);
+    auto subrace = std::make_unique<SubRace>(subraceId);
+    subrace->setPlayerId(neutralPlayerId);
+    subrace->setType(subraceType);
+    subrace->setBanner(map->getSubRaceBanner(
+        subraceType));
+
+    insertObject(std::move(subrace));
+    subraceCache[subraceType] = subraceId;
+    return subraceId;
+}
+
 void MapGenerator::registerZone(RaceType race)
 {
     zonesPerRace[race]++;

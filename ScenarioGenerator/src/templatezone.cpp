@@ -1356,7 +1356,8 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
 
     if (!leaderInfo) {
         leaderInfo = createStackLeader(unusedValue, valuesConsumed, unitValues,
-                                       stackInfo.groupInfo.subraceTypes);
+                                       stackInfo.groupInfo.subraceTypes,
+                                       stackInfo.groupInfo.forbiddenIds);
     }
 
     if (!leaderInfo) {
@@ -1398,13 +1399,15 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
         std::vector<std::size_t> soldierValues(unitValues.begin() + valuesConsumed,
                                                unitValues.end());
 
-        createGroup(unusedValue, positions, soldiers, soldierValues, stackInfo.groupInfo.subraceTypes);
+        createGroup(unusedValue, positions, soldiers, soldierValues,
+                    stackInfo.groupInfo.subraceTypes, stackInfo.groupInfo.forbiddenIds);
     }
 
     // Check if we still have unused value and free positions in group.
     // This should help with better stack value usage
     // and reduce number of stacks with single ranged or support leader
-    tightenGroup(unusedValue, positions, soldiers, stackInfo.groupInfo.subraceTypes);
+    tightenGroup(unusedValue, positions, soldiers, stackInfo.groupInfo.subraceTypes,
+                 stackInfo.groupInfo.forbiddenIds);
 
     if (mapGenerator->isDebugMode()) {
         // +1 because of leader
@@ -1562,7 +1565,8 @@ const UnitInfo* TemplateZone::pickStackLeader(std::size_t& unusedValue,
 const UnitInfo* TemplateZone::createStackLeader(std::size_t& unusedValue,
                                                 std::size_t& valuesConsumed,
                                                 const std::vector<std::size_t>& unitValues,
-                                                const std::set<SubRaceType>& allowedSubraces)
+                                                const std::set<SubRaceType>& allowedSubraces,
+                                                const std::set<CMidgardID>& forbiddenIds)
 {
     auto& rand{mapGenerator->randomGenerator};
 
@@ -1604,8 +1608,12 @@ const UnitInfo* TemplateZone::createStackLeader(std::size_t& unusedValue,
                                 info->getUnitId());
             };
 
-            const UnitInfo* leaderInfo{
-                pickLeader(rand, {filter, noForbiddenOnTemplate, noForbiddenUnit})};
+            auto noForbiddenOnGroup = [this, &forbiddenIds](const UnitInfo* info) {
+                return contains(forbiddenIds, info->getUnitId());
+            };
+
+            const UnitInfo* leaderInfo{pickLeader(rand, {filter, noForbiddenOnTemplate,
+                                                         noForbiddenOnGroup, noForbiddenUnit})};
             if (leaderInfo) {
                 // Accumulate unused value after picking a leader
                 unusedValue = value - leaderInfo->getValue();
@@ -1647,7 +1655,8 @@ void TemplateZone::createGroup(std::size_t& unusedValue,
                                std::set<int>& positions,
                                GroupUnits& groupUnits,
                                const std::vector<std::size_t>& unitValues,
-                               const std::set<SubRaceType>& allowedSubraces)
+                               const std::set<SubRaceType>& allowedSubraces,
+                               const std::set<CMidgardID>& forbiddenIds)
 {
     auto& rand{mapGenerator->randomGenerator};
 
@@ -1701,14 +1710,18 @@ void TemplateZone::createGroup(std::size_t& unusedValue,
 
             return false;
         };
-
+        
         auto noForbiddenOnTemplate = [this](const UnitInfo* info) {
             return contains(mapGenerator->mapGenOptions.mapTemplate->settings.forbiddenUnits,
                             info->getUnitId());
         };
 
+        auto noForbiddenOnGroup = [this, &forbiddenIds](const UnitInfo* info) {
+            return contains(forbiddenIds, info->getUnitId());
+        };
+
         const UnitInfo* info = pickUnit(rand, {filter, noWrongValue, noForbiddenOnTemplate,
-                                               noForbiddenUnit});
+                                               noForbiddenOnGroup, noForbiddenUnit});
         if (info) {
             // We picked a unit, update unused value
             unusedValue = value - info->getValue();
@@ -1745,7 +1758,8 @@ void TemplateZone::createGroup(std::size_t& unusedValue,
 void TemplateZone::tightenGroup(std::size_t& unusedValue,
                                 std::set<int>& positions,
                                 GroupUnits& groupUnits,
-                                const std::set<SubRaceType>& allowedSubraces)
+                                const std::set<SubRaceType>& allowedSubraces,
+                                const std::set<CMidgardID>& forbiddenIds)
 {
     auto& rand{mapGenerator->randomGenerator};
 
@@ -1810,8 +1824,12 @@ void TemplateZone::tightenGroup(std::size_t& unusedValue,
                             info->getUnitId());
         };
 
+        auto noForbiddenOnGroup = [this, &forbiddenIds](const UnitInfo* info) {
+            return contains(forbiddenIds, info->getUnitId());
+        };
+
         const UnitInfo* info = pickUnit(rand, {filter, noWrongValue, noForbiddenOnTemplate,
-                                               noForbiddenUnit});
+                                               noForbiddenOnGroup, noForbiddenUnit});
         if (info) {
             // We picked a unit, update unused value
             unusedValue = value - info->getValue();
@@ -1922,6 +1940,7 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
     // Create garrison and loot
     const auto& garrisonValue{cityInfo.garrison.value};
     if (garrisonValue) {
+
         std::size_t unusedValue{};
         std::set<int> positions;
         GroupUnits units = {{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}};
@@ -1968,8 +1987,10 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
         }
         }
 
-        createGroup(unusedValue, positions, units, values, cityInfo.garrison.subraceTypes);
-        tightenGroup(unusedValue, positions, units, cityInfo.garrison.subraceTypes);
+        createGroup(unusedValue, positions, units, values, cityInfo.garrison.subraceTypes,
+                    cityInfo.garrison.forbiddenIds);
+        tightenGroup(unusedValue, positions, units, cityInfo.garrison.subraceTypes,
+                     cityInfo.garrison.forbiddenIds);
         createGroupUnits(villagePtr->getGroup(), units);
     }
 
@@ -2108,6 +2129,10 @@ Site* TemplateZone::placeMage(const Position& position, const MageInfo& mageInfo
                             info->getSpellId());
         };
 
+        auto noForbiddenOnMage = [&mageInfo](const SpellInfo* info) {
+            return contains(mageInfo.forbiddenIds, info->getSpellId());
+        };
+
         while (currentValue <= desiredValue) {
             const int remainingValue = desiredValue - currentValue;
 
@@ -2115,8 +2140,8 @@ Site* TemplateZone::placeMage(const Position& position, const MageInfo& mageInfo
                 return info->getValue() > remainingValue;
             };
 
-            auto spell{pickSpell(rand, {noWrongType, noWrongLevel, noWrongValue,
-                                        noForbiddenOnTemplate, noForbiddenSpell, noDuplicates})};
+            auto spell{pickSpell(rand, {noWrongType, noWrongLevel, noWrongValue, noForbiddenOnTemplate,
+                                 noForbiddenSpell, noForbiddenOnMage, noDuplicates})};
             if (!spell) {
                 // Could not pick anything, stop
                 break;
@@ -2168,6 +2193,7 @@ Site* TemplateZone::placeMercenary(const Position& position, const MercenaryInfo
         const auto& value{mercInfo.value};
         const int desiredValue{static_cast<int>(rand.pickValue(value))};
         int currentValue{};
+        std::set<CMidgardID> addedUnits;
 
         auto noWrongType = [types = &mercInfo.subraceTypes](const UnitInfo* info) {
             if (types->empty()) {
@@ -2179,9 +2205,20 @@ Site* TemplateZone::placeMercenary(const Position& position, const MercenaryInfo
             return types->find(info->getSubrace()) == types->end();
         };
 
+        
+        auto noDuplicate = [&mercInfo, &addedUnits](const UnitInfo* info) {
+            if (mercInfo.duplicate)
+                return false; // duplicates allowed
+            return addedUnits.find(info->getUnitId()) != addedUnits.end();
+        };
+
         auto noForbiddenOnTemplate = [this](const UnitInfo* info) {
             return contains(mapGenerator->mapGenOptions.mapTemplate->settings.forbiddenUnits,
                             info->getUnitId());
+        };
+
+        auto noForbiddenOnMerc = [&mercInfo](const UnitInfo* info) {
+            return contains(mercInfo.forbiddenIds, info->getUnitId());
         };
 
         const auto& enrollValue{mercInfo.enrollValue};
@@ -2200,15 +2237,16 @@ Site* TemplateZone::placeMercenary(const Position& position, const MercenaryInfo
                 return info->getEnrollCost() > remainingValue;
             };
 
-            auto unit{pickUnit(rand, {noWrongType, noWrongValue, noForbiddenOnTemplate,
-                                      noForbiddenUnit})};
+            auto unit{pickUnit(rand, {noWrongType, noWrongValue, noDuplicate, noForbiddenOnTemplate,
+                                      noForbiddenOnMerc, noForbiddenUnit})};
             if (!unit) {
                 // Could not pick anything, stop
                 break;
             }
 
             currentValue += unit->getEnrollCost();
-            mercenary->addUnit(unit->getUnitId(), unit->getLevel(), true);
+            mercenary->addUnit(unit->getUnitId(), unit->getLevel(), mercInfo.unique);
+            addedUnits.insert(unit->getUnitId());
         }
     }
 
@@ -2327,8 +2365,10 @@ Ruin* TemplateZone::placeRuin(const Position& position, const RuinInfo& ruinInfo
         const std::size_t value{rand.pickValue(guardValue)};
         auto values{constrainedSum(maxRuinUnits, value, rand)};
 
-        createGroup(unusedValue, positions, units, values, ruinInfo.guard.subraceTypes);
-        tightenGroup(unusedValue, positions, units, ruinInfo.guard.subraceTypes);
+        createGroup(unusedValue, positions, units, values, ruinInfo.guard.subraceTypes,
+                    ruinInfo.guard.forbiddenIds);
+        tightenGroup(unusedValue, positions, units, ruinInfo.guard.subraceTypes,
+                     ruinInfo.guard.forbiddenIds);
 
         createGroupUnits(ruin->getGroup(), units);
     }
@@ -2452,6 +2492,10 @@ std::vector<std::pair<CMidgardID, int>> TemplateZone::createLoot(const LootInfo&
                             info->getItemId());
         };
 
+        auto noForbiddenOnLoot = [this, &loot](const ItemInfo* info) {
+            return contains(loot.forbiddenIds, info->getItemId());
+        };
+
         const auto& itemValue{loot.itemValue};
 
         int picked{};
@@ -2470,7 +2514,7 @@ std::vector<std::pair<CMidgardID, int>> TemplateZone::createLoot(const LootInfo&
             };
 
             auto item{pickItem(rand, {noWrongType, noWrongValue, noSpecialItem,
-                                      noForbiddenOnTemplate, noForbiddenItem})};
+                                      noForbiddenOnTemplate, noForbiddenOnLoot, noForbiddenItem})};
             if (!item) {
                 // Could not pick anything, stop
                 break;
@@ -2839,8 +2883,9 @@ void TemplateZone::placeCapital()
         const std::size_t value{rand.pickValue(garrisonValue)};
         const auto values{constrainedSum(Group::groupSize, value, rand)};
 
-        createGroup(unusedValue, positions, units, values, garrison.subraceTypes);
-        tightenGroup(unusedValue, positions, units, garrison.subraceTypes);
+        createGroup(unusedValue, positions, units, values, garrison.subraceTypes,
+                    garrison.forbiddenIds);
+        tightenGroup(unusedValue, positions, units, garrison.subraceTypes, garrison.forbiddenIds);
         createGroupUnits(capitalCity->getGroup(), units);
     }
 
@@ -3224,7 +3269,12 @@ void TemplateZone::placeStacks()
         }
 
         CMidgardID ownerId{mapGenerator->getPlayerId(stackGroup.owner)};
-        CMidgardID subraceId{mapGenerator->getSubraceId(stackGroup.owner)};
+        CMidgardID subraceId;
+        if (stackGroup.hasSubrace) {
+            subraceId = mapGenerator->getSubraceId(stackGroup.subrace);
+        } else {
+            subraceId = mapGenerator->getSubraceId(stackGroup.owner);
+        }
 
         if (ownerId == emptyId || subraceId == emptyId) {
             ownerId = mapGenerator->getNeutralPlayerId();
@@ -3239,6 +3289,7 @@ void TemplateZone::placeStacks()
         StackInfo randomStackInfo;
         randomStackInfo.groupInfo.value = stackGroup.groupInfo.value / stackGroup.count;
         randomStackInfo.groupInfo.subraceTypes = stackGroup.groupInfo.subraceTypes;
+        randomStackInfo.groupInfo.forbiddenIds = stackGroup.groupInfo.forbiddenIds;
         randomStackInfo.leaderIds = stackGroup.leaderIds;
         randomStackInfo.leaderModifiers = stackGroup.leaderModifiers;
         randomStackInfo.aiPriority = stackGroup.aiPriority;
@@ -3278,6 +3329,7 @@ void TemplateZone::placeStacks()
         stackLoot.value = stackGroupLoot.value / stackGroup.count;
         stackLoot.itemTypes = stackGroupLoot.itemTypes;
         stackLoot.itemValue = stackGroupLoot.itemValue;
+        stackLoot.forbiddenIds = stackGroupLoot.forbiddenIds;
 
         std::vector<std::vector<CMidgardID>> items(stackGroup.count);
         // Generate loot for each stack

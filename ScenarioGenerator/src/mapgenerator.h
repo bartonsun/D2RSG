@@ -142,6 +142,8 @@ public:
 
     // Returns subrace id for specified race
     CMidgardID getSubraceId(RaceType race) const;
+    // Returns subrace id for specified subrace
+    CMidgardID getSubraceId(SubRaceType subraceType);
 
     const CMidgardID& getNeutralPlayerId() const
     {

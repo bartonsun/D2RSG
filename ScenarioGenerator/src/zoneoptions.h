@@ -48,6 +48,8 @@ struct LootInfo
     RandomValue<std::uint32_t> value{};
     // Single loot item value, excluding required items
     RandomValue<std::uint32_t> itemValue{};
+    // List of restricted item ids for this loot, excluding required items
+    std::set<CMidgardID> forbiddenIds;
 };
 
 struct GroupInfo
@@ -58,6 +60,8 @@ struct GroupInfo
     LootInfo loot;
     // Group units value
     RandomValue<std::uint32_t> value{};
+    // List of restricted units id for this stack
+    std::set<CMidgardID> forbiddenIds;
 };
 
 struct StackInfo
@@ -68,14 +72,18 @@ struct StackInfo
     std::uint32_t count{};
     // Race that controls the stacks
     RaceType owner{RaceType::Neutral};
+    // Owner subrace
+    SubRaceType subrace;
+    bool hasSubrace{false};
     // Stack order
     OrderType order{OrderType::Normal};
     // Custom leader name
     std::string name;
+    // AI-priority
     AiPriority aiPriority;
     // Required leaders ids
     std::set<CMidgardID> leaderIds;
-    // Required leaders mofidicators
+    // Required leaders modifiers
     std::vector<CMidgardID> leaderModifiers;
     // Leader equipment
     CMidgardID bannerId;
@@ -97,6 +105,7 @@ struct CityInfo
     std::string name;
     // Race that controls the city
     RaceType owner{RaceType::Neutral};
+    // AI-priority
     AiPriority aiPriority;
     // City tier
     std::uint8_t tier{1};
@@ -122,6 +131,7 @@ struct CapitalInfo
     std::set<CMidgardID> buildings;
     // Custom capital name
     std::string name;
+    // AI-priority
     AiPriority aiPriority;
     int gapMask{0};
     // Generate capital guardian
@@ -136,7 +146,9 @@ struct RuinInfo
     LootInfo loot;
     // Custom ruin name
     std::string name;
-    RandomValue<std::uint16_t> gold{}; // Reward in gold
+    // Reward in gold
+    RandomValue<std::uint16_t> gold{};
+    // AI-priority
     AiPriority aiPriority;
 };
 
@@ -149,6 +161,7 @@ struct MerchantInfo
     // Custom merchant name and description
     std::string name;
     std::string description;
+    // AI-priority
     AiPriority aiPriority;
 };
 
@@ -167,7 +180,10 @@ struct MageInfo
     RandomValue<std::uint32_t> value{};
     // Spell levels that merchant is allowed to sell.
     RandomValue<std::uint8_t> spellLevels{};
+    // AI-priority
     AiPriority aiPriority;
+    // List of restricted spell ids for this mage, excluding requiredSpells
+    std::set<CMidgardID> forbiddenIds;
 };
 
 struct MercenaryUnitInfo
@@ -192,7 +208,14 @@ struct MercenaryInfo
     RandomValue<std::uint32_t> value{};
     // Single unit enroll cost, excluding requiredUnits
     RandomValue<std::uint32_t> enrollValue{};
+    // AI-priority
     AiPriority aiPriority;
+    // List of restricted unit ids for this mercenary camp, excluding requiredUnits
+    std::set<CMidgardID> forbiddenIds;
+    // All randomly generated units will be marked as unique
+    bool unique{true};
+    // Allow duplicate units in random generation (if false, no repeats)
+    bool duplicate{true};
 };
 
 struct StacksInfo
@@ -205,6 +228,7 @@ struct BagInfo
 {
     LootInfo loot;
     std::uint32_t count{};
+    // AI-priority
     AiPriority aiPriority;
 };
 
@@ -214,6 +238,7 @@ struct TrainerInfo
     // Custom trainer name and description
     std::string name;
     std::string description;
+    // AI-priority
     AiPriority aiPriority;
 };
 
@@ -236,6 +261,7 @@ struct ResourceMarketInfo
     // Custom name and description
     std::string name;
     std::string description;
+    // AI-priority
     AiPriority aiPriority;
 };
 

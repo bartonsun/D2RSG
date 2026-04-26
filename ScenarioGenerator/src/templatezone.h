@@ -215,20 +215,23 @@ struct TemplateZone : public ZoneOptions
     const UnitInfo* createStackLeader(std::size_t& unusedValue,
                                       std::size_t& valuesConsumed,
                                       const std::vector<std::size_t>& unitValues,
-                                      const std::set<SubRaceType>& allowedSubraces);
+                                      const std::set<SubRaceType>& allowedSubraces,
+                                      const std::set<CMidgardID>& forbiddenIds);
 
     // Picks soldiers using specified values
     void createGroup(std::size_t& unusedValue,
                      std::set<int>& positions,
                      GroupUnits& groupUnits,
                      const std::vector<std::size_t>& unitValues,
-                     const std::set<SubRaceType>& allowedSubraces);
+                     const std::set<SubRaceType>& allowedSubraces,
+                     const std::set<CMidgardID>& forbiddenIds);
 
     // Tightens group by rolling additional soldier units
     void tightenGroup(std::size_t& unusedValue,
                       std::set<int>& positions,
                       GroupUnits& groupUnits,
-                      const std::set<SubRaceType>& allowedSubraces);
+                      const std::set<SubRaceType>& allowedSubraces,
+                      const std::set<CMidgardID>& forbiddenIds);
 
     void createGroupUnits(Group& group, const GroupUnits& groupUnits);
 

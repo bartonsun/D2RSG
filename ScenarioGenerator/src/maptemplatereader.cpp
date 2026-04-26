@@ -69,28 +69,7 @@ void bindLuaApi(sol::state& lua)
         "NeutralWater", SubRaceType::NeutralWater,
         "NeutralBarbarian", SubRaceType::NeutralBarbarian,
         "NeutralWolf", SubRaceType::NeutralWolf,
-        "Elf", SubRaceType::Elf,
-        "Sub15", SubRaceType::Sub15,
-        "Sub16", SubRaceType::Sub16,
-        "Sub17", SubRaceType::Sub17,
-        "Sub18", SubRaceType::Sub18,
-        "Sub19", SubRaceType::Sub19,
-        "Sub20", SubRaceType::Sub20,
-        "Sub21", SubRaceType::Sub21,
-        "Sub22", SubRaceType::Sub22,
-        "Sub23", SubRaceType::Sub23,
-        "Sub23", SubRaceType::Sub23,
-        "Sub24", SubRaceType::Sub24,
-        "Sub25", SubRaceType::Sub25,
-        "Sub26", SubRaceType::Sub26,
-        "Sub27", SubRaceType::Sub27,
-        "Sub28", SubRaceType::Sub28,
-        "Sub29", SubRaceType::Sub29,
-        "Sub30", SubRaceType::Sub30,
-        "Sub31", SubRaceType::Sub31,
-        "Sub32", SubRaceType::Sub32,
-        "Sub33", SubRaceType::Sub33,
-        "Sub34", SubRaceType::Sub34
+        "Elf", SubRaceType::Elf
     );
 
     lua.new_enum("Terrain",
@@ -327,6 +306,11 @@ static void readLoot(LootInfo& loot, const sol::table& table)
             loot.requiredItems.push_back(info);
         }
     }
+
+    auto forbiddenIds = table.get<sol::optional<StringSet>>("forbiddenIds");
+    if (forbiddenIds.has_value()) {
+        readStringSet(loot.forbiddenIds, forbiddenIds.value());
+    }
 }
 
 static void readEquipment(StackInfo& info, sol::table table)
@@ -356,6 +340,11 @@ static void readGroup(GroupInfo& group, const sol::table& table)
     if (loot.has_value()) {
         readLoot(group.loot, loot.value());
     }
+
+    auto forbiddenIds = table.get<sol::optional<StringSet>>("forbiddenIds");
+    if (forbiddenIds.has_value()) {
+        readStringSet(group.forbiddenIds, forbiddenIds.value());
+    }
 }
 
 static void readStack(StackInfo& info, sol::table table)
@@ -384,7 +373,14 @@ static void readStack(StackInfo& info, sol::table table)
     if (equipment.has_value()) {
         readEquipment(info, equipment.value());
     }
+
     readAiPriority(info.aiPriority, table);
+
+    auto subraceValue = table.get<sol::optional<SubRaceType>>("subrace");
+    if (subraceValue.has_value()) {
+        info.subrace = subraceValue.value();
+        info.hasSubrace = true;
+    }
 }
 
 static void readCity(CityInfo& city, const sol::table& table)
@@ -559,7 +555,13 @@ static void readMage(MageInfo& mage, const sol::table& table)
 
     mage.name = readString(table, "name", "");
     mage.description = readString(table, "description", "");
+
     readAiPriority(mage.aiPriority, table);
+
+    auto forbiddenIds = table.get<sol::optional<StringSet>>("forbiddenIds");
+    if (forbiddenIds.has_value()) {
+        readStringSet(mage.forbiddenIds, forbiddenIds.value());
+    }
 }
 
 static void readMages(std::vector<MageInfo>& mages, const std::vector<sol::table>& tables)
@@ -620,6 +622,14 @@ static void readMercenary(MercenaryInfo& mercenary, const sol::table& table)
     mercenary.name = readString(table, "name", "");
     mercenary.description = readString(table, "description", "");
     readAiPriority(mercenary.aiPriority, table);
+
+    auto forbiddenIds = table.get<sol::optional<StringSet>>("forbiddenIds");
+    if (forbiddenIds.has_value()) {
+        readStringSet(mercenary.forbiddenIds, forbiddenIds.value());
+    }
+
+    mercenary.unique = readValue(table, "unique", true);
+    mercenary.duplicate = readValue(table, "duplicate", true);
 }
 
 static void readMercenaries(std::vector<MercenaryInfo>& mercenaries,
