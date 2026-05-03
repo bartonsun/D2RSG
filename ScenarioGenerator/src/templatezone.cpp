@@ -979,7 +979,12 @@ bool TemplateZone::guardObject(const MapElement& mapElement, const StackInfo& gu
     }
 
     CMidgardID ownerId{mapGenerator->getPlayerId(guardInfo.owner)};
-    CMidgardID subraceId{mapGenerator->getSubraceId(guardInfo.owner)};
+    CMidgardID subraceId;
+    if (guardInfo.owner == RaceType::Neutral && guardInfo.subrace != SubRaceType::Neutral) {
+        subraceId = mapGenerator->getSubraceId(guardInfo.subrace);
+    } else {
+        subraceId = mapGenerator->getSubraceId(guardInfo.owner);
+    }
 
     if (ownerId == emptyId || subraceId == emptyId) {
         ownerId = mapGenerator->getNeutralPlayerId();
@@ -1907,7 +1912,12 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
     auto village{std::make_unique<Village>(villageId)};
 
     CMidgardID ownerId{mapGenerator->getPlayerId(cityInfo.owner)};
-    CMidgardID subraceId{mapGenerator->getSubraceId(cityInfo.owner)};
+    CMidgardID subraceId;
+    if (cityInfo.owner == RaceType::Neutral && cityInfo.subrace != SubRaceType::Neutral) {
+        subraceId = mapGenerator->getSubraceId(cityInfo.subrace);
+    } else {
+        subraceId = mapGenerator->getSubraceId(cityInfo.owner);
+    }
 
     if (ownerId == emptyId || subraceId == emptyId) {
         ownerId = mapGenerator->getNeutralPlayerId();
@@ -2403,7 +2413,12 @@ Stack* TemplateZone::placeZoneGuard(const Position& position, const StackInfo& g
     }
 
     CMidgardID ownerId{mapGenerator->getPlayerId(guardInfo.owner)};
-    CMidgardID subraceId{mapGenerator->getSubraceId(guardInfo.owner)};
+    CMidgardID subraceId;
+    if (guardInfo.owner == RaceType::Neutral && guardInfo.subrace != SubRaceType::Neutral) {
+        subraceId = mapGenerator->getSubraceId(guardInfo.subrace);
+    } else {
+        subraceId = mapGenerator->getSubraceId(guardInfo.owner);
+    }
 
     if (ownerId == emptyId || subraceId == emptyId) {
         ownerId = mapGenerator->getNeutralPlayerId();
@@ -3270,7 +3285,7 @@ void TemplateZone::placeStacks()
 
         CMidgardID ownerId{mapGenerator->getPlayerId(stackGroup.owner)};
         CMidgardID subraceId;
-        if (stackGroup.hasSubrace) {
+        if (stackGroup.owner == RaceType::Neutral && stackGroup.subrace != SubRaceType::Neutral) {
             subraceId = mapGenerator->getSubraceId(stackGroup.subrace);
         } else {
             subraceId = mapGenerator->getSubraceId(stackGroup.owner);

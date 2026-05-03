@@ -351,6 +351,7 @@ static void readStack(StackInfo& info, sol::table table)
 {
     readGroup(info.groupInfo, table);
     info.owner = table.get_or("owner", RaceType::Neutral);
+    info.subrace = table.get_or("subrace", SubRaceType::Neutral);
     info.order = table.get_or("order", OrderType::Stand);
     info.name = readString(table, "name", "");
     auto units = table.get<sol::optional<StringSet>>("leaderIds");
@@ -375,12 +376,6 @@ static void readStack(StackInfo& info, sol::table table)
     }
 
     readAiPriority(info.aiPriority, table);
-
-    auto subraceValue = table.get<sol::optional<SubRaceType>>("subrace");
-    if (subraceValue.has_value()) {
-        info.subrace = subraceValue.value();
-        info.hasSubrace = true;
-    }
 }
 
 static void readCity(CityInfo& city, const sol::table& table)
@@ -396,6 +391,7 @@ static void readCity(CityInfo& city, const sol::table& table)
     }
 
     city.owner = table.get_or("owner", RaceType::Neutral);
+    city.subrace = table.get_or("subrace", SubRaceType::Neutral);
     city.tier = readValue(table, "tier", 1, 1, 5);
     city.regen = readValue(table, "regen", 0, -100, 100);
     city.growthTurn = readValue(table, "growthTurn", 0, 0, 9999);

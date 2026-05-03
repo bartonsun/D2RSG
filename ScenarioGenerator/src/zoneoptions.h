@@ -73,8 +73,7 @@ struct StackInfo
     // Race that controls the stacks
     RaceType owner{RaceType::Neutral};
     // Owner subrace
-    SubRaceType subrace;
-    bool hasSubrace{false};
+    SubRaceType subrace{SubRaceType::Neutral};
     // Stack order
     OrderType order{OrderType::Normal};
     // Custom leader name
@@ -105,6 +104,8 @@ struct CityInfo
     std::string name;
     // Race that controls the city
     RaceType owner{RaceType::Neutral};
+    // Owner subrace
+    SubRaceType subrace{SubRaceType::Neutral};
     // AI-priority
     AiPriority aiPriority;
     // City tier

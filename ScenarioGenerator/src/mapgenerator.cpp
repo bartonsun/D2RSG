@@ -730,8 +730,7 @@ CMidgardID MapGenerator::getSubraceId(SubRaceType subraceType)
     auto subrace = std::make_unique<SubRace>(subraceId);
     subrace->setPlayerId(neutralPlayerId);
     subrace->setType(subraceType);
-    subrace->setBanner(map->getSubRaceBanner(
-        subraceType));
+    subrace->setBanner(map->getSubRaceBanner(subraceType));
 
     insertObject(std::move(subrace));
     subraceCache[subraceType] = subraceId;
