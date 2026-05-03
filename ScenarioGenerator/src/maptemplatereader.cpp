@@ -893,7 +893,7 @@ static void readScenarioVariables(const std::vector<sol::table>& tables,
     for (const auto& table : tables) {
         MapTemplateScenarioVariables::ScenarioVariables scenarioVariable{};
         scenarioVariable.name = readString(table, "name", "");
-        scenarioVariable.value = readValue(table, "value", 0, -2147483647, 2147483647);
+        scenarioVariable.value = readValue(table, "value", 0, -99999999, 999999999);
         scenarioVariables.push_back(scenarioVariable);
     }
 }
