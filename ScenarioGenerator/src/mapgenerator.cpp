@@ -104,7 +104,10 @@ MapPtr MapGenerator::generate()
     generateZones();
     // Clear map so that all tiles are unguarded
     map->calculateGuardingCreaturePositions();
-    fillZones();
+
+    if (!fillZones()) {
+        return nullptr;
+    }
 
     setupDiplomacy();
     addScenarioVariables();
@@ -164,7 +167,7 @@ void MapGenerator::generateZones()
     }
 }
 
-void MapGenerator::fillZones()
+bool MapGenerator::fillZones()
 {
     if (isDebugMode()) {
         std::cout << "Started filling zones\n";
@@ -196,7 +199,9 @@ void MapGenerator::fillZones()
         it.second->createBorder();
     }
 
-    createDirectConnections();
+    if (!createDirectConnections()) {
+        return false;
+    }
 
     for (auto& it : zones) {
         it.second->fill();
@@ -232,6 +237,8 @@ void MapGenerator::fillZones()
     }
 
     createRoads();
+
+    return true;
 }
 
 void MapGenerator::setupDiplomacy()
@@ -285,7 +292,7 @@ void MapGenerator::addScenarioVariables()
     }
 }
 
-void MapGenerator::createDirectConnections()
+bool MapGenerator::createDirectConnections()
 {
     for (auto& connection : mapGenOptions.mapTemplate->contents.connections) {
         auto zoneA{zones[connection.zoneFrom]};
@@ -308,30 +315,36 @@ void MapGenerator::createDirectConnections()
             });
         }
 
-        // Find tiles with minimum manhattan distance from center of the mass of zone border
-        const auto tilesCount{middleTiles.empty() ? std::size_t{1} : middleTiles.size()};
+        if (middleTiles.empty()) {
+            std::cout << "Zones connection failed: no shared border " << zoneA->id << " & "
+                      << zoneB->id << '\n';
+            return false;
+        }
+
+        const auto tilesCount{middleTiles.size()};
 
         auto middleTile{std::accumulate(middleTiles.begin(), middleTiles.end(), Position(0, 0))};
         middleTile /= tilesCount;
 
         std::sort(middleTiles.begin(), middleTiles.end(),
                   [&middleTile](const Position& a, Position& b) {
-                      // Choose tiles with both coordinates in the middle
                       return a.mahnattanDistance(middleTile) < b.mahnattanDistance(middleTile);
                   });
 
-        // Remove 1/4 tiles from each side - path should cross zone borders at smooth angle
         const auto removeCount{tilesCount / 4};
-
         middleTiles.erase(middleTiles.end() - removeCount, middleTiles.end());
         middleTiles.erase(middleTiles.begin(), middleTiles.begin() + removeCount);
 
         randomShuffle(middleTiles, randomGenerator);
 
+        bool connectionMade = false;
+
         for (auto& tile : middleTiles) {
             guardPos = tile;
 
             if (guardPos.isValid()) {
+
+                connectionMade = true;
 
                 if (!connection.size) {
                     break;
@@ -345,9 +358,7 @@ void MapGenerator::createDirectConnections()
                 // Place next objects away from guard in both zones
                 zoneB->updateDistances(guardPos);
 
-                // Set free tile only after connection is made to the center of the zone
                 if (!guard) {
-                    // Strength is too weak for guard to spawn
                     setOccupied(guardPos, TileType::Free);
                 }
 
@@ -357,8 +368,14 @@ void MapGenerator::createDirectConnections()
             }
         }
 
-        // TODO: check water zones, update 'connectionsLeft' ?
+        if (!connectionMade) {
+            std::cout << "Zones connection failed: could not place guard/path between zones "
+                      << zoneA->id << " && " << zoneB->id << '\n';
+            return false;
+        }
     }
+
+    return true;
 }
 
 void MapGenerator::createObstacles()

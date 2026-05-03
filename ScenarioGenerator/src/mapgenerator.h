@@ -95,11 +95,12 @@ public:
     void addHeaderInfo();
     void initTiles();
     void generateZones();
-    void fillZones();
     void setupDiplomacy();
     void addScenarioVariables();
-    void createDirectConnections();
     void createObstacles();
+
+    bool fillZones();
+    bool createDirectConnections();
 
     TemplateZoneId getZoneId(const Position& position) const;
     void setZoneId(const Position& position, TemplateZoneId zoneId);
