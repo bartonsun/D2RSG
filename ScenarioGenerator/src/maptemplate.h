@@ -45,6 +45,11 @@ struct MapTemplateSettings
     int startingGold{};
     int startingNativeMana{};
     int forest{}; // Percentage of unused tiles converted to forest after content placement
+    uint8_t maxUnit{5};
+    uint8_t maxSpell{5};
+    uint8_t maxLeader{99};
+    uint8_t maxCity{5};
+    uint8_t startingLevel{1};
     uint32_t iterations{};
 
     struct TemplateCustomParameter

@@ -94,7 +94,7 @@ void ScenarioInfo::serialize(Serializer& serializer, const Map& scenario) const
         serializer.serialize(name, races[i]);
     }
 
-    serializer.serialize("SUGG_LVL", 1);
+    serializer.serialize("SUGG_LVL", startingLevel);
     serializer.serialize("MAP_SEED", seed);
     serializer.leaveRecord();
 }
@@ -126,6 +126,31 @@ void ScenarioInfo::setWinMessage(const std::string& value)
 void ScenarioInfo::setLoseMessage(const std::string& value)
 {
     debunkL = value;
+}
+
+void ScenarioInfo::setMaxUnit(std::uint8_t value)
+{
+    maxUnit = value;
+}
+
+void ScenarioInfo::setMaxSpell(std::uint8_t value)
+{
+    maxSpell = value;
+}
+
+void ScenarioInfo::setMaxLeader(std::uint8_t value)
+{
+    maxLeader = value;
+}
+
+void ScenarioInfo::setMaxCity(std::uint8_t value)
+{
+    maxCity = value;
+}
+
+void ScenarioInfo::setStartingLevel(std::uint8_t value)
+{
+    startingLevel = value;
 }
 
 void ScenarioInfo::setSeed(std::uint32_t value)

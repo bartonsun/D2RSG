@@ -52,6 +52,11 @@ public:
     void setBriefing(const std::string& value);
     void setWinMessage(const std::string& value);
     void setLoseMessage(const std::string& value);
+    void setMaxUnit(std::uint8_t value);
+    void setMaxSpell(std::uint8_t value);
+    void setMaxLeader(std::uint8_t value);
+    void setMaxCity(std::uint8_t value);
+    void setStartingLevel(std::uint8_t value);
     void setSeed(std::uint32_t value);
 
 private:
@@ -61,10 +66,11 @@ private:
     std::string debunkL;
     std::string briefing;
     CMidgardID campaignId;
-    int maxUnit{5};
-    int maxSpell{5};
-    int maxLeader{99};
-    int maxCity{5};
+    std::uint8_t maxUnit{5};
+    std::uint8_t maxSpell{5};
+    std::uint8_t maxLeader{99};
+    std::uint8_t maxCity{5};
+    std::uint8_t startingLevel{1};
     std::uint32_t seed{};
     DifficultyType scenarioDifficulty{DifficultyType::VeryHard};
     DifficultyType gameDifficulty{DifficultyType::Average};

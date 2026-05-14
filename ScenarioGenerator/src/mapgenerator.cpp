@@ -122,6 +122,7 @@ void MapGenerator::addHeaderInfo()
     map->size = mapGenOptions.size;
 
     ScenarioInfo* info = map->getScenarioInfo();
+    rsg::MapTemplateSettings settings = mapGenOptions.mapTemplate->settings;
 
     info->setBriefing(map->description);
     // Assume these identifiers exist, they are default texts used by Scenario Editor
@@ -133,6 +134,11 @@ void MapGenerator::addHeaderInfo()
     // 'You have been defeated, the objective was completed by the enemy.'
     info->setLoseMessage(getGameInfo()->getEditorInterfaceText(CMidgardID("X005TA0779")));
     info->setSeed(static_cast<std::uint32_t>(randomSeed));
+    info->setMaxUnit(settings.maxUnit);
+    info->setMaxSpell(settings.maxSpell);
+    info->setMaxLeader(settings.maxLeader);
+    info->setMaxCity(settings.maxCity);
+    info->setStartingLevel(settings.startingLevel);
 }
 
 void MapGenerator::initTiles()

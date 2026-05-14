@@ -1026,7 +1026,31 @@ static void readContents(MapTemplate& mapTemplate, const sol::table& contentsTab
     if (startingNativeMana >= 0) {
         mapTemplate.settings.startingNativeMana = startingNativeMana;
     }
-    
+
+    auto maxUnit = readValue(contentsTable, "maxUnit", 1, 1, 10);
+    if (maxUnit >= 2) {
+        mapTemplate.settings.maxUnit = maxUnit;
+    }
+
+    auto maxSpell = readValue(contentsTable, "maxSpell", -1, -1, 5);
+    if (maxSpell >= 0) {
+        mapTemplate.settings.maxSpell = maxSpell;
+    }
+
+    auto maxLeader = readValue(contentsTable, "maxLeader", 0, 0, 99);
+    if (maxLeader >= 1) {
+        mapTemplate.settings.maxLeader = maxLeader;
+    }
+
+    auto maxCity = readValue(contentsTable, "maxCity", 0, 0, 5);
+    if (maxCity >= 1) {
+        mapTemplate.settings.maxCity = maxCity;
+    }
+
+    auto startingLevel = readValue(contentsTable, "startingLevel", 0, 0, 99);
+    if (startingLevel >= 1) {
+        mapTemplate.settings.startingLevel = startingLevel;
+    }
 }
 
 static void readSettings(MapTemplateSettings& settings, const sol::state& lua)
@@ -1062,6 +1086,12 @@ static void readSettings(MapTemplateSettings& settings, const sol::state& lua)
     settings.startingGold = readValue(table, "startingGold", 0, 0, 9999);
     settings.startingNativeMana = readValue(table, "startingNativeMana", 0, 0, 9999);
     settings.forest = readValue(table, "forest", 0, 0, 100);
+
+    settings.maxUnit = readValue(table, "maxUnit", 5, 2, 10);
+    settings.maxSpell = readValue(table, "maxSpell", 5, 0, 5);
+    settings.maxLeader = readValue(table, "maxLeader", 99, 1, 99);
+    settings.maxCity = readValue(table, "maxCity", 1, 1, 5);
+    settings.startingLevel = readValue(table, "startingLevel", 1, 1, 99);
 
     settings.iterations = readValue(table, "iterations", 0, 0, 1000000);
 
