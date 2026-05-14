@@ -273,6 +273,8 @@ struct ZoneConnection
     TemplateZoneId zoneFrom{0};
     TemplateZoneId zoneTo{0};
     int size{1};
+    int distance{0};
+    bool required{true};
 };
 
 // Template zone settings

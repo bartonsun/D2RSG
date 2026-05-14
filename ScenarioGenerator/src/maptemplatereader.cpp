@@ -831,7 +831,9 @@ static ZoneConnection createZoneConnection(const sol::table& table,
     if (guard.has_value()) {
         readStack(connection.guard, guard.value());
     }
-    connection.size = readValue(table, "size", 1, 0, 1);
+    connection.size = readValue(table, "size", 1, 0, 144);
+    connection.distance = readValue(table, "distance", 0, 0, 144);
+    connection.required = readValue(table, "required", true);
 
     return connection;
 }

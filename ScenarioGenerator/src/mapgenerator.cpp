@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the random scenario generator for Disciples 2.
  * (https://github.com/VladimirMakeev/D2RSG)
  * Copyright (C) 2023 Vladimir Makeev.
@@ -294,35 +294,76 @@ void MapGenerator::addScenarioVariables()
 
 bool MapGenerator::createDirectConnections()
 {
+    std::set<Position> usedConnectionTiles;
+
     for (auto& connection : mapGenOptions.mapTemplate->contents.connections) {
         auto zoneA{zones[connection.zoneFrom]};
         auto zoneB{zones[connection.zoneTo]};
 
+        if (isDebugMode()) {
+            std::cout << "Connection: " << zoneA->id << " and " << zoneB->id << " | width "
+                      << connection.size << " | distance " << connection.distance << "\n";
+        }
+
         const auto zoneBId{zoneB->id};
         Position guardPos{-1, -1};
 
+        std::set<Position> forbidden;
+        if (connection.distance > 0) {
+            for (const auto& tile : usedConnectionTiles) {
+                // все клетки в радиусе distance от уже занятых
+                for (int dx = -connection.distance; dx <= connection.distance; ++dx) {
+                    int limitY = connection.distance - std::abs(dx);
+                    for (int dy = -limitY; dy <= limitY; ++dy) {
+                        Position neighbor = tile + Position{dx, dy};
+                        if (map->isInTheMap(neighbor)) {
+                            forbidden.insert(neighbor);
+                        }
+                    }
+                }
+            }
+        }
+
         std::vector<Position> middleTiles{};
         for (auto& tile : zoneA->getTileInfo()) {
-            if (isUsed(tile)) {
+            if (isUsed(tile))
                 continue;
-            }
 
-            // Must be direct since paths also generated between direct neighbours
-            foreachDirectNeighbor(tile, [this, &tile, &middleTiles, zoneBId](Position& position) {
-                if (getZoneId(position) == zoneBId) {
-                    middleTiles.push_back(tile);
+            if (connection.distance > 0 && forbidden.count(tile))
+                continue;
+
+            bool hasNeighborInB = false;
+            const Position dirs[] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+            for (const auto& d : dirs) {
+                Position neighbor = tile + d;
+                if (map->isInTheMap(neighbor) && getZoneId(neighbor) == zoneBId
+                    && (connection.distance == 0 || !forbidden.count(neighbor))) {
+                    hasNeighborInB = true;
+                    break;
                 }
-            });
+            }
+            if (hasNeighborInB) {
+                middleTiles.push_back(tile);
+            }
         }
 
         if (middleTiles.empty()) {
-            std::cout << "Zones connection failed: no shared border " << zoneA->id << " & "
-                      << zoneB->id << '\n';
-            return false;
+            if (connection.required) {
+                if (isDebugMode()) {
+                    std::cout << "Required connection failed: no shared border between zones "
+                              << zoneA->id << " & " << zoneB->id << '\n';
+                }
+                return false;
+            } else {
+                if (isDebugMode()) {
+                    std::cout << "Optional connection skipped: no shared border between zones "
+                              << zoneA->id << " & " << zoneB->id << '\n';
+                }
+                continue;
+            }
         }
 
         const auto tilesCount{middleTiles.size()};
-
         auto middleTile{std::accumulate(middleTiles.begin(), middleTiles.end(), Position(0, 0))};
         middleTile /= tilesCount;
 
@@ -341,37 +382,106 @@ bool MapGenerator::createDirectConnections()
 
         for (auto& tile : middleTiles) {
             guardPos = tile;
+            if (!guardPos.isValid())
+                continue;
 
-            if (guardPos.isValid()) {
+            // size == 0
+            if (connection.size == 0) {
+                if (connection.distance > 0 && forbidden.count(guardPos))
+                    continue;
 
-                connectionMade = true;
-
-                if (!connection.size) {
-                    break;
-                }
-
-                // Zones can make paths only in their own area
                 zoneA->connectWithCenter(guardPos, true, true);
                 zoneB->connectWithCenter(guardPos, true, true);
-
-                const Stack* guard{zoneA->placeZoneGuard(guardPos, connection.guard)};
-                // Place next objects away from guard in both zones
-                zoneB->updateDistances(guardPos);
-
-                if (!guard) {
-                    setOccupied(guardPos, TileType::Free);
-                }
-
                 zoneA->addRoadNode(guardPos);
                 zoneB->addRoadNode(guardPos);
+                usedConnectionTiles.insert(guardPos);
+                connectionMade = true;
+                break;
+            }
+
+            // size >= 2
+            if (connection.size >= 2) {
+                int half = connection.size / 2;
+                Position base = guardPos - Position{half, half};
+                std::set<Position> squareCells;
+                for (int dx = 0; dx < connection.size; ++dx) {
+                    for (int dy = 0; dy < connection.size; ++dy) {
+                        Position cell = base + Position{dx, dy};
+                        if (map->isInTheMap(cell)) {
+                            if (getZoneId(cell) == zoneA->id || getZoneId(cell) == zoneB->id) {
+                                squareCells.insert(cell);
+                            }
+                        }
+                    }
+                }
+
+                if (connection.distance > 0) {
+                    bool blocked = false;
+                    for (const auto& cell : squareCells) {
+                        if (forbidden.count(cell)) {
+                            blocked = true;
+                            break;
+                        }
+                    }
+                    if (blocked)
+                        continue;
+                }
+
+                for (const auto& cell : squareCells) {
+                    setOccupied(cell, TileType::Free);
+                    if (getZoneId(cell) == zoneA->id || getZoneId(cell) == zoneB->id) {
+                        zoneA->addRoadNode(cell);
+                        zoneB->addRoadNode(cell);
+                        zoneA->connectWithCenter(cell, true, true);
+                        zoneB->connectWithCenter(cell, true, true);
+                    }
+                    usedConnectionTiles.insert(cell);
+                }
+
+                zoneA->connectWithCenter(guardPos, true, true);
+                zoneB->connectWithCenter(guardPos, true, true);
+                const Stack* guard{zoneA->placeZoneGuard(guardPos, connection.guard)};
+                zoneB->updateDistances(guardPos);
+                if (!guard)
+                    setOccupied(guardPos, TileType::Free);
+                zoneA->addRoadNode(guardPos);
+                zoneB->addRoadNode(guardPos);
+                connectionMade = true;
+                break;
+            } else { // size == 1
+                if (connection.distance > 0 && forbidden.count(guardPos))
+                    continue;
+
+                zoneA->connectWithCenter(guardPos, true, true);
+                zoneB->connectWithCenter(guardPos, true, true);
+                const Stack* guard{zoneA->placeZoneGuard(guardPos, connection.guard)};
+                zoneB->updateDistances(guardPos);
+                if (!guard)
+                    setOccupied(guardPos, TileType::Free);
+                zoneA->addRoadNode(guardPos);
+                zoneB->addRoadNode(guardPos);
+                usedConnectionTiles.insert(guardPos);
+                connectionMade = true;
                 break;
             }
         }
 
         if (!connectionMade) {
-            std::cout << "Zones connection failed: could not place guard/path between zones "
-                      << zoneA->id << " && " << zoneB->id << '\n';
-            return false;
+            if (connection.required) {
+                if (isDebugMode()) {
+                    std::cout
+                        << "Required connection failed: could not place guard/path between zones "
+                        << zoneA->id << " & " << zoneB->id << '\n';
+                }
+                return false;
+            } else {
+                if (isDebugMode()) {
+                    std::cout
+                        << "Optional connection skipped: could not place guard/path between zones "
+                        << zoneA->id << " & " << zoneB->id << '\n';
+                }
+                continue;
+            }
         }
     }
 
