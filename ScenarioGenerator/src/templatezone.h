@@ -257,6 +257,7 @@ struct TemplateZone : public ZoneOptions
 
     void initTerrain();
     void fractalize();
+    void applyFill();
     void placeCapital();
     void placeCities();
     void placeMerchants();
@@ -293,6 +294,8 @@ struct TemplateZone : public ZoneOptions
     // Returns true if tile with specified position belongs to zone
     bool isInTheZone(const Position& position) const;
 
+    bool isBorderTile(const Position& position) const;
+
 private:
     bool createRoad(const Position& source, const Position& destination);
 
@@ -323,6 +326,7 @@ private:
     std::set<Position> possibleTiles; // For treasure generation
     std::set<Position> freePaths;     // Paths of free tiles that all objects will be linked to
     std::set<Position> roadNodes;     // Tiles to be connected with roads
+    std::set<Position> borderTiles;   // Zone border tiles
 
     std::vector<RoadInfo> roads; // All tiles with roads
     CMidgardID ownerId{emptyId}; // Player assigned to zone

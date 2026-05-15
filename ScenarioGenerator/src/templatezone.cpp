@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the random scenario generator for Disciples 2.
  * (https://github.com/VladimirMakeev/D2RSG)
  * Copyright (C) 2023 Vladimir Makeev.
@@ -210,25 +210,26 @@ void TemplateZone::initFreeTiles()
 
 void TemplateZone::createBorder()
 {
-    std::size_t borderTiles{};
+    std::size_t borderTilesCount{};
     std::size_t openBorders{};
     std::size_t closedBorders{};
 
     for (auto& tile : tileInfo) {
         bool border{};
 
-        mapGenerator->foreachNeighbor(tile, [this, &border, &borderTiles, &openBorders,
+        mapGenerator->foreachNeighbor(tile, [this, &border, &borderTilesCount, &openBorders,
                                              &closedBorders](const Position& position) {
             border = border || mapGenerator->getZoneId(position) != id;
         });
 
         if (border) {
-            ++borderTiles;
+            borderTiles.insert(tile);
+            ++borderTilesCount;
 
             if (mapGenerator->isPossible(tile)) {
+                Tile& mapTile = mapGenerator->map->getTile(tile);
                 switch (borderType) {
                 case ZoneBorderType::Water: {
-                    Tile& mapTile = mapGenerator->map->getTile(tile);
                     mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Water);
                     mapGenerator->setOccupied(tile, TileType::Free);
                     ++openBorders;
@@ -240,17 +241,19 @@ void TemplateZone::createBorder()
                     break;
 
                 case ZoneBorderType::Closed:
+                    mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Mountain);
                     mapGenerator->setOccupied(tile, TileType::Blocked);
                     ++closedBorders;
                     break;
 
                 case ZoneBorderType::SemiOpen: {
                     const bool gap{mapGenerator->randomGenerator.chance(gapChance)};
-
-                    mapGenerator->setOccupied(tile, gap ? TileType::Free : TileType::Blocked);
                     if (gap) {
+                        mapGenerator->setOccupied(tile, TileType::Free);
                         ++openBorders;
                     } else {
+                        mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Mountain);
+                        mapGenerator->setOccupied(tile, TileType::Blocked);
                         ++closedBorders;
                     }
 
@@ -262,11 +265,11 @@ void TemplateZone::createBorder()
     }
 
     if (mapGenerator->isDebugMode()) {
-        const double bordersTotal{static_cast<double>(borderTiles)};
+        const double bordersTotal{static_cast<double>(borderTilesCount)};
         const float openPercent = static_cast<double>(openBorders) / bordersTotal * 100.0f;
         const float closedPercent = static_cast<double>(closedBorders) / bordersTotal * 100.0f;
 
-        std::cout << "Zone id " << id << ", border tiles " << borderTiles << ", open "
+        std::cout << "Zone id " << id << ", border tiles " << borderTilesCount << ", open "
                   << openBorders << " (" << openPercent << " %)"
                   << ", closed " << closedBorders << " (" << closedPercent << " %). Gap chance "
                   << gapChance << " %\n";
@@ -2719,8 +2722,8 @@ void TemplateZone::fractalize()
     // Connect them with a grid
     std::vector<Position> nodes;
 
-    if (type != TemplateZoneType::Junction) {
-        // Junction is not fractalized,
+    if (fillType == TemplateZoneFillType::None) {
+        // Zone is not fractalized,
         // has only one straight path everything else remains blocked
         while (!possibleTiles.empty()) {
             // Link tiles in random order
@@ -2840,6 +2843,146 @@ void TemplateZone::fractalize()
         std::snprintf(name, sizeof(name) - 1, "zone %d fractalize.png", id);
 
         mapGenerator->debugTiles(name);
+    }
+}
+
+void TemplateZone::applyFill()
+{
+    if (fillType == TemplateZoneFillType::None)
+        return;
+
+    if (borderType == ZoneBorderType::Closed) {
+        const auto& knownMountains = getGeneratorSettings().mountains;
+        auto& rand = mapGenerator->randomGenerator;
+        std::vector<GeneratorSettings::Mountain> smallMountains;
+        for (const auto& m : knownMountains)
+            if (m.size == 1)
+                smallMountains.push_back(m);
+        if (smallMountains.empty() && !knownMountains.empty())
+            smallMountains.push_back(knownMountains.front());
+
+        for (const auto& tile : borderTiles) {
+            if (mapGenerator->isFree(tile) || mapGenerator->isPossible(tile)
+                || mapGenerator->isUsed(tile))
+                continue;
+            const auto& mountain = *getRandomElement(smallMountains, rand);
+            mapGenerator->map->addMountain(tile, {1, 1}, mountain.image);
+            auto& mapTile = mapGenerator->map->getTile(tile);
+            mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Mountain);
+            mapGenerator->setOccupied(tile, TileType::Blocked);
+        }
+    }
+
+    GroundType fillGround;
+    switch (fillType) {
+    case TemplateZoneFillType::Mountain:
+        fillGround = GroundType::Mountain;
+        break;
+    case TemplateZoneFillType::Water:
+        fillGround = GroundType::Water;
+        break;
+    case TemplateZoneFillType::Forest:
+        fillGround = GroundType::Forest;
+        break;
+    case TemplateZoneFillType::Plain:
+        fillGround = GroundType::Plain;
+        break;
+    default:
+        return;
+    }
+    auto& rand = mapGenerator->randomGenerator;
+
+    if (fillGround == GroundType::Mountain) {
+        using MountainPair = std::pair<int, std::vector<GeneratorSettings::Mountain>>;
+        std::map<int, std::vector<GeneratorSettings::Mountain>> obstaclesBySize;
+        for (const auto& m : getGeneratorSettings().mountains) {
+            obstaclesBySize[m.size].push_back(m);
+        }
+        std::vector<MountainPair> possibleObstacles(obstaclesBySize.begin(), obstaclesBySize.end());
+        std::sort(possibleObstacles.begin(), possibleObstacles.end(),
+                  [](const MountainPair& a, const MountainPair& b) { return a.first > b.first; });
+
+        auto canPlaceHere = [&](const Position& pos, const Position& size) {
+            for (int dx = 0; dx < size.x; ++dx) {
+                for (int dy = 0; dy < size.y; ++dy) {
+                    Position cell = pos + Position{dx, dy};
+                    if (!mapGenerator->map->isInTheMap(cell))
+                        return false;
+                    if (isBorderTile(cell) || mapGenerator->isUsed(cell))
+                        return false;
+                    if (freePaths.count(cell) || mapGenerator->isFree(cell)
+                        || mapGenerator->isPossible(cell))
+                        return false;
+                    if (mapGenerator->map->getTile(cell).ground == GroundType::Mountain)
+                        return false;
+                }
+            }
+            return true;
+        };
+
+        for (auto& tile : tileInfo) {
+            if (isBorderTile(tile) || mapGenerator->isUsed(tile))
+                continue;
+            if (freePaths.count(tile) || mapGenerator->isFree(tile)
+                || mapGenerator->isPossible(tile))
+                continue;
+
+            for (const auto& [size, mountains] : possibleObstacles) {
+                if (size == 1 && possibleObstacles.size() > 1)
+                    continue;
+
+                const auto& mountain = *getRandomElement(mountains, rand);
+                Position mountainSize{size, size};
+                if (!canPlaceHere(tile, mountainSize))
+                    continue;
+
+                if ((size == 3 || size == 5) && rand.chance(10)) {
+                    auto noWrongSize = [size](const LandmarkInfo* info) {
+                        return info->getSize().x != size || info->getSize().y != size;
+                    };
+                    auto info{pickMountainLandmark(rand, {noWrongSize})};
+                    if (info) {
+                        auto landmarkId{mapGenerator->createId(CMidgardID::Type::Landmark)};
+                        auto landmark{std::make_unique<Landmark>(landmarkId, info->getSize())};
+                        landmark->setTypeId(info->getLandmarkId());
+                        placeObject(std::move(landmark), tile);
+                    } else {
+                        placeMountain(tile, mountainSize, mountain.image);
+                    }
+                } else {
+                    placeMountain(tile, mountainSize, mountain.image);
+                }
+
+                for (int dx = 0; dx < size; ++dx) {
+                    for (int dy = 0; dy < size; ++dy) {
+                        Position cell = tile + Position{dx, dy};
+                        if (!mapGenerator->map->isInTheMap(cell))
+                            continue;
+                        auto& mapTile = mapGenerator->map->getTile(cell);
+                        mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Mountain);
+                        mapGenerator->setOccupied(cell, TileType::Blocked);
+                    }
+                }
+                break;
+            }
+        }
+        return;
+    }
+
+    for (auto& tile : tileInfo) {
+        if (isBorderTile(tile) || mapGenerator->isUsed(tile))
+            continue;
+        if (freePaths.count(tile) || mapGenerator->isFree(tile) || mapGenerator->isPossible(tile))
+            continue;
+
+        auto& mapTile = mapGenerator->map->getTile(tile);
+        mapTile.setTerrainGround(TerrainType::Neutral, fillGround);
+        if (fillGround == GroundType::Forest) {
+            mapTile.treeImage = getRandomTreeImageIndex(rand);
+            mapGenerator->setOccupied(tile, TileType::Free);
+        } else {
+            mapGenerator->setOccupied(tile, TileType::Free);
+        }
     }
 }
 
@@ -3861,6 +4004,11 @@ const std::vector<RoadInfo>& TemplateZone::getRoads() const
 bool TemplateZone::isInTheZone(const Position& position) const
 {
     return mapGenerator->getZoneId(position) == id;
+}
+
+bool TemplateZone::isBorderTile(const Position& position) const
+{
+    return borderTiles.count(position) > 0;
 }
 
 bool TemplateZone::createRoad(const Position& source, const Position& destination)

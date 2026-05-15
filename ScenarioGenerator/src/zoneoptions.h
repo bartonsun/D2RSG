@@ -296,6 +296,7 @@ struct ZoneOptions
     CapitalInfo capital;                        // Capital, in case of starting zone
     TemplateZoneId id{0};
     TemplateZoneType type{TemplateZoneType::PlayerStart};
+    TemplateZoneFillType fillType{TemplateZoneFillType::None};
     RaceType playerRace{RaceType::Neutral};
     ZoneBorderType borderType{ZoneBorderType::Closed};
     int gapChance{50}; // Chance border tile will become gap in case of SemiOpen borders

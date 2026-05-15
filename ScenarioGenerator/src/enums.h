@@ -245,6 +245,15 @@ enum class TemplateZoneType
     Water,
 };
 
+enum class TemplateZoneFillType
+{
+    None,
+    Mountain,
+    Water,
+    Forest,
+    Plain,
+};
+
 enum class ZoneBorderType
 {
     Open,     // Zone has no impassable borders

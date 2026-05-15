@@ -118,6 +118,14 @@ void bindLuaApi(sol::state& lua)
         "Water", TemplateZoneType::Water
     );
 
+    lua.new_enum("Fill",
+        "None", TemplateZoneFillType::None,
+        "Mountain", TemplateZoneFillType::Mountain,
+        "Water", TemplateZoneFillType::Water,
+        "Forest", TemplateZoneFillType::Forest,
+        "Plain", TemplateZoneFillType::Plain
+    );
+
     lua.new_enum("Border",
         "Open", ZoneBorderType::Open,
         "SemiOpen", ZoneBorderType::SemiOpen,
@@ -757,6 +765,7 @@ static std::shared_ptr<ZoneOptions> createZoneOptions(const sol::table& zone)
         }
     }
 
+    options->fillType = zone.get_or("fill", TemplateZoneFillType::None);
     options->size = readValue(zone, "size", 1, 1);
     options->borderType = zone.get_or("border", ZoneBorderType::Closed);
     if (options->borderType == ZoneBorderType::SemiOpen) {

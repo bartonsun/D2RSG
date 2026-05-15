@@ -231,7 +231,9 @@ bool MapGenerator::fillZones()
     // In this case mountains on zone boundaries can be made bigger.
     // Place actual obstacles matching zone terrain
     for (auto& it : zones) {
-        it.second->createObstacles();
+        if (it.second->fillType == TemplateZoneFillType::None) {
+            it.second->createObstacles();
+        }
     }
 
     if constexpr (debugObstacles) {
@@ -240,6 +242,12 @@ bool MapGenerator::fillZones()
 
     for (auto& it : zones) {
         it.second->connectRoads();
+    }
+
+    for (auto& it : zones) {
+        if (it.second->fillType != TemplateZoneFillType::None) {
+            it.second->applyFill();
+        }
     }
 
     createRoads();
