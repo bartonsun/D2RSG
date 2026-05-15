@@ -27,6 +27,7 @@
 #include <array>
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -175,6 +176,17 @@ public:
         return diplomacy;
     }
 
+    CMidgardID getNeutralSubraceId(SubRaceType type) const
+    {
+        auto it = neutralSubraceIds.find(type);
+        return it != neutralSubraceIds.end() ? it->second : CMidgardID{};
+    }
+
+    void registerNeutralSubrace(SubRaceType type, const CMidgardID& id)
+    {
+        neutralSubraceIds[type] = id;
+    }
+
 private:
     std::size_t posToIndex(const Position& position) const
     {
@@ -182,7 +194,6 @@ private:
     }
 
     void createMapBlocks();
-    void createNeutralSubraces();
 
     std::unordered_map<CMidgardID, ScenarioObjectPtr, CMidgardIDHash> objects;
     std::vector<Tile> tiles;
@@ -195,6 +206,7 @@ private:
     ScenarioVariables* scenarioVariables{};
     Mountains* mountains{};
     TalismanCharges* talismanCharges{};
+    std::map<SubRaceType, CMidgardID> neutralSubraceIds;
 };
 
 using MapPtr = std::unique_ptr<Map>;

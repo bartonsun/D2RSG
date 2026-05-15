@@ -862,20 +862,27 @@ std::map<SubRaceType, CMidgardID> subraceCache;
 
 CMidgardID MapGenerator::getSubraceId(SubRaceType subraceType)
 {
-    auto it = subraceCache.find(subraceType);
-    if (it != subraceCache.end())
-        return it->second;
+    CMidgardID id = map->getNeutralSubraceId(subraceType);
+    if (id != emptyId)
+        return id;
 
-    // Create neutral subrace
-    CMidgardID subraceId = createId(CMidgardID::Type::SubRace);
-    auto subrace = std::make_unique<SubRace>(subraceId);
+    auto it = subraceCache.find(subraceType);
+    if (it != subraceCache.end()) {
+        id = it->second;
+        map->registerNeutralSubrace(subraceType, id);
+        return id;
+    }
+
+    id = createId(CMidgardID::Type::SubRace);
+    auto subrace = std::make_unique<SubRace>(id);
     subrace->setPlayerId(neutralPlayerId);
     subrace->setType(subraceType);
     subrace->setBanner(map->getSubRaceBanner(subraceType));
-
     insertObject(std::move(subrace));
-    subraceCache[subraceType] = subraceId;
-    return subraceId;
+
+    subraceCache[subraceType] = id;
+    map->registerNeutralSubrace(subraceType, id);
+    return id;
 }
 
 void MapGenerator::registerZone(RaceType race)

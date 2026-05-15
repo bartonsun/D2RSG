@@ -104,7 +104,6 @@ void Map::serialize(const std::filesystem::path& scenarioFilePath)
     }
 
     createMapBlocks();
-    createNeutralSubraces();
 
     // Write header, TODO: use scenario info for this
     serializer.serialize(*this, scenarioId, races);
@@ -477,31 +476,6 @@ void Map::createMapBlocks()
 
             insertObject(std::move(mapBlock));
         }
-    }
-}
-
-void Map::createNeutralSubraces()
-{
-    CMidgardID neutralsId;
-    visit(CMidgardID::Type::Player, [this, &neutralsId](const ScenarioObject* object) {
-        auto player{dynamic_cast<const Player*>(object)};
-
-        if (getRaceType(player->getRace()) == RaceType::Neutral) {
-            neutralsId = player->getId();
-        }
-    });
-
-    assert(neutralsId != emptyId);
-
-    for (int i = (int)SubRaceType::NeutralHuman; i <= (int)SubRaceType::NeutralWolf; ++i) {
-        const auto subraceType{static_cast<SubRaceType>(i)};
-
-        auto subrace{std::make_unique<SubRace>(createId(CMidgardID::Type::SubRace))};
-        subrace->setPlayerId(neutralsId);
-        subrace->setType(subraceType);
-        subrace->setBanner(getSubRaceBanner(subraceType));
-
-        insertObject(std::move(subrace));
     }
 }
 
