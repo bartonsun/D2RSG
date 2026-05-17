@@ -366,8 +366,13 @@ static void readStack(StackInfo& info, sol::table table)
 {
     readGroup(info.groupInfo, table);
     info.owner = table.get_or("owner", RaceType::Neutral);
-    info.subrace = table.get_or("subrace", SubRaceType::Neutral);
-    info.customSubraceUid = readString(table, "customSubrace", "");
+    sol::object subraceObj = table.get<sol::object>("subrace");
+    if (subraceObj.get_type() == sol::type::number) {
+        info.subrace = subraceObj.as<SubRaceType>();
+    } else if (subraceObj.get_type() == sol::type::string) {
+        info.customSubraceUid = subraceObj.as<std::string>();
+        info.subrace = SubRaceType::Neutral;
+    }
     info.order = table.get_or("order", OrderType::Stand);
     info.name = readString(table, "name", "");
     auto units = table.get<sol::optional<StringSet>>("leaderIds");
@@ -407,7 +412,13 @@ static void readCity(CityInfo& city, const sol::table& table)
     }
 
     city.owner = table.get_or("owner", RaceType::Neutral);
-    city.subrace = table.get_or("subrace", SubRaceType::Neutral);
+    sol::object subraceObj = table.get<sol::object>("subrace");
+    if (subraceObj.get_type() == sol::type::number) {
+        city.subrace = subraceObj.as<SubRaceType>();
+    } else if (subraceObj.get_type() == sol::type::string) {
+        city.customSubraceUid = subraceObj.as<std::string>();
+        city.subrace = SubRaceType::Neutral;
+    }
     city.customSubraceUid = readString(table, "customSubrace", "");
     city.tier = readValue(table, "tier", 1, 1, 5);
     city.regen = readValue(table, "regen", 0, -100, 100);
