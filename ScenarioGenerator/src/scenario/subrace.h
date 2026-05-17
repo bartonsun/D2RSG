@@ -41,6 +41,16 @@ public:
 
     void serialize(Serializer& serializer, const Map& scenario) const override;
 
+    const std::string& getName() const
+    {
+        return name;
+    }
+
+    void setName(const std::string& newName)
+    {
+        name = newName;
+    }
+
     const CMidgardID& getPlayerId() const
     {
         return playerId;

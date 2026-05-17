@@ -130,6 +130,20 @@ struct MapTemplateScenarioVariables
     std::vector<ScenarioVariables> scenarioVariables;
 };
 
+// Describes custom subraces
+struct MapTemplatCustomSubraceInfo
+{
+    struct CustomSubrace
+    {
+        std::string uid;
+        std::string name;
+        std::int8_t banner{4};
+        std::set<CMidgardID> subraceUnits;
+    };
+
+    std::vector<CustomSubrace> customSubraces;
+};
+
 // Describes template contents.
 struct MapTemplateContents
 {
@@ -139,6 +153,7 @@ struct MapTemplateContents
     std::vector<ZoneConnection> connections;
     MapTemplateDiplomacy diplomacy;
     MapTemplateScenarioVariables scenarioVariables;
+    MapTemplatCustomSubraceInfo customSubraces;
 };
 
 // Random scenario generator template

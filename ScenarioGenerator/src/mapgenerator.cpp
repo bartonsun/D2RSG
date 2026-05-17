@@ -101,6 +101,8 @@ MapPtr MapGenerator::generate()
     neutralPlayerId = playerSubraceIds.first;
     neutralSubraceId = playerSubraceIds.second;
 
+    createCustomSubraces();
+
     generateZones();
     // Clear map so that all tiles are unguarded
     map->calculateGuardingCreaturePositions();
@@ -325,7 +327,6 @@ bool MapGenerator::createDirectConnections()
         std::set<Position> forbidden;
         if (connection.distance > 0) {
             for (const auto& tile : usedConnectionTiles) {
-                // все клетки в радиусе distance от уже занятых
                 for (int dx = -connection.distance; dx <= connection.distance; ++dx) {
                     int limitY = connection.distance - std::abs(dx);
                     for (int dy = -limitY; dy <= limitY; ++dy) {
@@ -943,6 +944,42 @@ void MapGenerator::debugTiles(const char* fileName) const
 
     Image zonesImage(mapSize, mapSize, pixels);
     zonesImage.write(fileName);
+}
+
+void MapGenerator::createCustomSubraces()
+{
+    const auto& customSubraces = mapGenOptions.mapTemplate->contents.customSubraces.customSubraces;
+    for (const auto& info : customSubraces) {
+        if (customSubraceIds.find(info.uid) != customSubraceIds.end())
+            continue;
+
+        CMidgardID subraceId = createId(CMidgardID::Type::SubRace);
+        auto subrace = std::make_unique<SubRace>(subraceId);
+        subrace->setPlayerId(neutralPlayerId);
+        subrace->setType(SubRaceType::Custom);
+        subrace->setBanner(info.banner);
+        subrace->setName(info.name);
+
+        insertObject(std::move(subrace));
+
+        customSubraceIds[info.uid] = subraceId;
+
+        if (!info.subraceUnits.empty()) {
+            customSubraceUnits[info.uid] = info.subraceUnits;
+        }
+    }
+}
+
+CMidgardID MapGenerator::getSubraceId(const std::string& uid) const
+{
+    auto it = customSubraceIds.find(uid);
+    return (it != customSubraceIds.end()) ? it->second : emptyId;
+}
+
+const std::set<CMidgardID>* MapGenerator::getCustomSubraceUnits(const std::string& uid) const
+{
+    auto it = customSubraceUnits.find(uid);
+    return (it != customSubraceUnits.end()) ? &it->second : nullptr;
 }
 
 } // namespace rsg

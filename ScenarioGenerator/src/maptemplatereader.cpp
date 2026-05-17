@@ -334,9 +334,16 @@ static void readEquipment(StackInfo& info, sol::table table)
 
 static void readGroup(GroupInfo& group, const sol::table& table)
 {
-    auto subraceTypes = table.get<sol::optional<decltype(group.subraceTypes)>>("subraceTypes"); 
+    auto subraceTypes = table.get<sol::optional<sol::table>>("subraceTypes");
     if (subraceTypes.has_value()) {
-        group.subraceTypes = subraceTypes.value();
+        for (const auto& kv : subraceTypes.value()) {
+            sol::object val = kv.second;
+            if (val.get_type() == sol::type::number) {
+                group.subraceTypes.insert(val.as<SubRaceType>());
+            } else if (val.get_type() == sol::type::string) {
+                group.customSubraceUids.insert(val.as<std::string>());
+            }
+        }
     }
 
     auto value = table.get<OptionalTable>("value");
@@ -360,6 +367,7 @@ static void readStack(StackInfo& info, sol::table table)
     readGroup(info.groupInfo, table);
     info.owner = table.get_or("owner", RaceType::Neutral);
     info.subrace = table.get_or("subrace", SubRaceType::Neutral);
+    info.customSubraceUid = readString(table, "customSubrace", "");
     info.order = table.get_or("order", OrderType::Stand);
     info.name = readString(table, "name", "");
     auto units = table.get<sol::optional<StringSet>>("leaderIds");
@@ -400,6 +408,7 @@ static void readCity(CityInfo& city, const sol::table& table)
 
     city.owner = table.get_or("owner", RaceType::Neutral);
     city.subrace = table.get_or("subrace", SubRaceType::Neutral);
+    city.customSubraceUid = readString(table, "customSubrace", "");
     city.tier = readValue(table, "tier", 1, 1, 5);
     city.regen = readValue(table, "regen", 0, -100, 100);
     city.growthTurn = readValue(table, "growthTurn", 0, 0, 9999);
@@ -598,9 +607,16 @@ static void readMercenaryUnits(std::vector<MercenaryUnitInfo>& mercenaryUnits,
 
 static void readMercenary(MercenaryInfo& mercenary, const sol::table& table)
 {
-    auto subraceTypes = table.get<sol::optional<decltype(mercenary.subraceTypes)>>("subraceTypes");
+    auto subraceTypes = table.get<sol::optional<sol::table>>("subraceTypes");
     if (subraceTypes.has_value()) {
-        mercenary.subraceTypes = subraceTypes.value();
+        for (const auto& kv : subraceTypes.value()) {
+            sol::object val = kv.second;
+            if (val.get_type() == sol::type::number) {
+                mercenary.subraceTypes.insert(val.as<SubRaceType>());
+            } else if (val.get_type() == sol::type::string) {
+                mercenary.customSubraceUids.insert(val.as<std::string>());
+            }
+        }
     }
 
     auto value = table.get<OptionalTable>("value");
@@ -898,6 +914,29 @@ static void readDiplomacy(const std::vector<sol::table>& tables, MapTemplateDipl
     }
 }
 
+static void readCustomSubraces(const std::vector<sol::table>& tables,
+    std::vector<MapTemplatCustomSubraceInfo::CustomSubrace>& customSubraces)
+{
+    for (const auto& table : tables) {
+        MapTemplatCustomSubraceInfo::CustomSubrace info{};
+        info.uid = readString(table, "uid", ""); 
+        if (info.uid.empty()) {
+            continue;
+        }
+        info.name = readString(table, "name", "");
+        info.banner = readValue(table, "banner", 4, 0, 255);
+        auto units = table.get<sol::optional<std::vector<std::string>>>("subraceUnits");
+        if (units.has_value()) {
+            for (const auto& idStr : units.value()) {
+                CMidgardID unitId(idStr.c_str());
+                if (unitId != invalidId && unitId != emptyId)
+                    info.subraceUnits.insert(unitId);
+            }
+        }
+        customSubraces.push_back(info);
+    }
+}
+
 static void readScenarioVariables(const std::vector<sol::table>& tables,
     std::vector<MapTemplateScenarioVariables::ScenarioVariables>& scenarioVariables)
 {
@@ -991,6 +1030,11 @@ static void readContents(MapTemplate& mapTemplate, const sol::table& contentsTab
     auto diplomacyTable = contentsTable.get<OptionalTableArray>("diplomacy");
     if (diplomacyTable.has_value()) {
         readDiplomacy(diplomacyTable.value(), contents.diplomacy);
+    }
+
+    auto customSubracesTables = contentsTable.get<OptionalTableArray>("customSubraces");
+    if (customSubracesTables.has_value()) {
+        readCustomSubraces(customSubracesTables.value(), contents.customSubraces.customSubraces);
     }
 
     auto scenarioVariablesTable = contentsTable.get<OptionalTableArray>("scenarioVariables");

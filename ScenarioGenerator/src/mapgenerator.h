@@ -171,6 +171,11 @@ public:
         return position.x + mapGenOptions.size * position.y;
     }
 
+    CMidgardID getSubraceId(const std::string& customName) const;
+    void createCustomSubraces();
+
+    const std::set<CMidgardID>* getCustomSubraceUnits(const std::string& uid) const;
+
     bool isDebugMode() const
     {
         return debug;
@@ -187,6 +192,8 @@ public:
     time_t randomSeed;
     CMidgardID neutralPlayerId;
     CMidgardID neutralSubraceId;
+    std::map<std::string, CMidgardID> customSubraceIds;
+    std::map<std::string, std::set<CMidgardID>> customSubraceUnits;
     std::size_t zonesTotal{}; // Zones with capital town only
     bool debug{};
 };

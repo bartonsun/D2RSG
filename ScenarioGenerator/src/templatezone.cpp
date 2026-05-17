@@ -1353,6 +1353,15 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
     std::size_t unusedValue{};
     std::size_t valuesConsumed{};
 
+    // Custom subrace units for filter
+    std::set<CMidgardID> allowedUnitIds;
+    for (const auto& uid : stackInfo.groupInfo.customSubraceUids) {
+        auto units = mapGenerator->getCustomSubraceUnits(uid);
+        if (units) {
+            allowedUnitIds.insert(units->begin(), units->end());
+        }
+    }
+
     // Pick leader
     const UnitInfo* leaderInfo{};
     const auto& leaders{getGameInfo()->getLeaders()};
@@ -1364,7 +1373,7 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
 
     if (!leaderInfo) {
         leaderInfo = createStackLeader(unusedValue, valuesConsumed, unitValues,
-                                       stackInfo.groupInfo.subraceTypes,
+                                       stackInfo.groupInfo.subraceTypes, allowedUnitIds,
                                        stackInfo.groupInfo.forbiddenIds);
     }
 
@@ -1408,14 +1417,15 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
                                                unitValues.end());
 
         createGroup(unusedValue, positions, soldiers, soldierValues,
-                    stackInfo.groupInfo.subraceTypes, stackInfo.groupInfo.forbiddenIds);
+                    stackInfo.groupInfo.subraceTypes,
+                    allowedUnitIds, stackInfo.groupInfo.forbiddenIds);
     }
 
     // Check if we still have unused value and free positions in group.
     // This should help with better stack value usage
     // and reduce number of stacks with single ranged or support leader
     tightenGroup(unusedValue, positions, soldiers, stackInfo.groupInfo.subraceTypes,
-                 stackInfo.groupInfo.forbiddenIds);
+        allowedUnitIds, stackInfo.groupInfo.forbiddenIds);
 
     if (mapGenerator->isDebugMode()) {
         // +1 because of leader
@@ -1574,14 +1584,15 @@ const UnitInfo* TemplateZone::createStackLeader(std::size_t& unusedValue,
                                                 std::size_t& valuesConsumed,
                                                 const std::vector<std::size_t>& unitValues,
                                                 const std::set<SubRaceType>& allowedSubraces,
+                                                const std::set<CMidgardID>& allowedUnitIds,
                                                 const std::set<CMidgardID>& forbiddenIds)
 {
     auto& rand{mapGenerator->randomGenerator};
 
     // How many failed attempts considered as a stop condition
-    constexpr std::size_t totalFails{5};
+    constexpr std::size_t totalFails{15};
     // How fast minValue coefficient decreases after each unsuccessfull attempt
-    constexpr float minValueCoeffDecrease{0.15f};
+    constexpr float minValueCoeffDecrease{0.05f};
     // Coefficient that determines minimum leader value for pick.
     // Gradually decreased if we struggle to pick leader
     float minValueCoeff{0.65f};
@@ -1598,16 +1609,21 @@ const UnitInfo* TemplateZone::createStackLeader(std::size_t& unusedValue,
             // We can't choose a large squad if the experience is divided into 6 parts
             const bool canPlaceBig = unitValues.size() < 6;
 
-            auto filter = [allowedSubraces, minValue, value, canPlaceBig](const UnitInfo* info) {
-                if (!allowedSubraces.empty()) {
-                    if (!contains(allowedSubraces, info->getSubrace())) {
-                        return true;
-                    }
+            auto filter = [allowedSubraces, &allowedUnitIds, canPlaceBig, minValue, value](const UnitInfo* info) {
+                bool allowed;
+                if (allowedSubraces.empty() && allowedUnitIds.empty()) {
+                    allowed = true;
+                } else {
+                    allowed = allowedSubraces.count(info->getSubrace())
+                              || allowedUnitIds.count(info->getUnitId());
                 }
-                if (!canPlaceBig && info->isBig()) {
+                if (!allowed)
+                    // Remove units of subraces that are not allowed
+                    return true;
+
+                if (!canPlaceBig && info->isBig())
                     // Remove big units if we can not place them
                     return true;
-                }
                 return static_cast<float>(info->getValue()) < minValue || info->getValue() > value;
             };
 
@@ -1664,6 +1680,7 @@ void TemplateZone::createGroup(std::size_t& unusedValue,
                                GroupUnits& groupUnits,
                                const std::vector<std::size_t>& unitValues,
                                const std::set<SubRaceType>& allowedSubraces,
+                               const std::set<CMidgardID>& allowedUnitIds,
                                const std::set<CMidgardID>& forbiddenIds)
 {
     auto& rand{mapGenerator->randomGenerator};
@@ -1688,13 +1705,18 @@ void TemplateZone::createGroup(std::size_t& unusedValue,
         // We can place big unit if front and back line positions are free
         const auto canPlaceBig = positions.count(position) && positions.count(secondPosition) && positions.size() > unitValues.size();
 
-        auto filter = [allowedSubraces, canPlaceBig, frontline](const UnitInfo* info) {
-            if (!allowedSubraces.empty()) {
-                if (allowedSubraces.find(info->getSubrace()) == allowedSubraces.end()) {
-                    // Remove units of subraces that are not allowed
-                    return true;
-                }
+        auto filter = [allowedSubraces, &allowedUnitIds, canPlaceBig,
+                       frontline](const UnitInfo* info) {
+            bool allowed;
+            if (allowedSubraces.empty() && allowedUnitIds.empty()) {
+                allowed = true;
+            } else {
+                allowed = allowedSubraces.count(info->getSubrace())
+                          || allowedUnitIds.count(info->getUnitId());
             }
+            if (!allowed)
+                // Remove units of subraces that are not allowed
+                return true;
 
             if (!canPlaceBig && info->isBig()) {
                 // Remove big units if we can not place them
@@ -1767,6 +1789,7 @@ void TemplateZone::tightenGroup(std::size_t& unusedValue,
                                 std::set<int>& positions,
                                 GroupUnits& groupUnits,
                                 const std::set<SubRaceType>& allowedSubraces,
+                                const std::set<CMidgardID>& allowedUnitIds,
                                 const std::set<CMidgardID>& forbiddenIds)
 {
     auto& rand{mapGenerator->randomGenerator};
@@ -1796,12 +1819,22 @@ void TemplateZone::tightenGroup(std::size_t& unusedValue,
         // We can place big unit if front and back line positions are free
         const auto canPlaceBig = positions.count(position) && positions.count(secondPosition);
 
-        auto filter = [allowedSubraces, canPlaceBig, frontline](const UnitInfo* info) {
-            if (!allowedSubraces.empty()) {
-                if (allowedSubraces.find(info->getSubrace()) == allowedSubraces.end()) {
-                    // Remove units of subraces that are not allowed
-                    return true;
-                }
+        auto filter = [allowedSubraces, &allowedUnitIds, canPlaceBig,
+                       frontline](const UnitInfo* info) {
+            bool allowed;
+            if (allowedSubraces.empty() && allowedUnitIds.empty()) {
+                allowed = true;
+            } else {
+                allowed = allowedSubraces.count(info->getSubrace())
+                          || allowedUnitIds.count(info->getUnitId());
+            }
+            if (!allowed)
+                // Remove units of subraces that are not allowed
+                return true;
+
+            if (!canPlaceBig && info->isBig()) {
+                // Remove big units if we can not place them
+                return true;
             }
 
             if (!canPlaceBig && info->isBig()) {
@@ -1916,7 +1949,10 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
 
     CMidgardID ownerId{mapGenerator->getPlayerId(cityInfo.owner)};
     CMidgardID subraceId;
-    if (cityInfo.owner == RaceType::Neutral && cityInfo.subrace != SubRaceType::Neutral) {
+    if (!cityInfo.customSubraceUid.empty()) {
+        subraceId = mapGenerator->getSubraceId(cityInfo.customSubraceUid);
+    } else if (cityInfo.owner == RaceType::Neutral
+               && cityInfo.subrace != SubRaceType::Neutral) {
         subraceId = mapGenerator->getSubraceId(cityInfo.subrace);
     } else {
         subraceId = mapGenerator->getSubraceId(cityInfo.owner);
@@ -2000,9 +2036,17 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
         }
         }
 
+        std::set<CMidgardID> allowedUnitIds;
+        for (const auto& uid : cityInfo.garrison.customSubraceUids) {
+            auto units = mapGenerator->getCustomSubraceUnits(uid);
+            if (units) {
+                allowedUnitIds.insert(units->begin(), units->end());
+            }
+        }
+
         createGroup(unusedValue, positions, units, values, cityInfo.garrison.subraceTypes,
-                    cityInfo.garrison.forbiddenIds);
-        tightenGroup(unusedValue, positions, units, cityInfo.garrison.subraceTypes,
+                    allowedUnitIds, cityInfo.garrison.forbiddenIds);
+        tightenGroup(unusedValue, positions, units, cityInfo.garrison.subraceTypes, allowedUnitIds,
                      cityInfo.garrison.forbiddenIds);
         createGroupUnits(villagePtr->getGroup(), units);
     }
@@ -2201,6 +2245,14 @@ Site* TemplateZone::placeMercenary(const Position& position, const MercenaryInfo
     mercenary->setImgIso(*getRandomElement(getGeneratorSettings().mercenaries.images, rand));
     mercenary->setAiPriority(mercInfo.aiPriority);
 
+    std::set<CMidgardID> allowedUnitIds;
+    for (const auto& uid : mercInfo.customSubraceUids) {
+        auto units = mapGenerator->getCustomSubraceUnits(uid);
+        if (units) {
+            allowedUnitIds.insert(units->begin(), units->end());
+        }
+    }
+
     // Generate random mercenary units of specified subraces
     if (mercInfo.value) {
         const auto& value{mercInfo.value};
@@ -2208,14 +2260,14 @@ Site* TemplateZone::placeMercenary(const Position& position, const MercenaryInfo
         int currentValue{};
         std::set<CMidgardID> addedUnits;
 
-        auto noWrongType = [types = &mercInfo.subraceTypes](const UnitInfo* info) {
-            if (types->empty()) {
-                // No types specified, allow all units
+        auto noWrongType = [&mercInfo, &allowedUnitIds](const UnitInfo* info) {
+            // No types specified, allow all units
+            if (mercInfo.subraceTypes.empty() && allowedUnitIds.empty()) {
                 return false;
             }
-
-            // Remove units of subraces that mercenary is not allowed to sell
-            return types->find(info->getSubrace()) == types->end();
+            bool typeAllowed = mercInfo.subraceTypes.count(info->getSubrace()) > 0;
+            bool idAllowed = allowedUnitIds.count(info->getUnitId()) > 0;
+            return !(typeAllowed || idAllowed);
         };
 
         
@@ -2378,10 +2430,18 @@ Ruin* TemplateZone::placeRuin(const Position& position, const RuinInfo& ruinInfo
         const std::size_t value{rand.pickValue(guardValue)};
         auto values{constrainedSum(maxRuinUnits, value, rand)};
 
+        std::set<CMidgardID> allowedUnitIds;
+        for (const auto& uid : ruinInfo.guard.customSubraceUids) {
+            auto units = mapGenerator->getCustomSubraceUnits(uid);
+            if (units) {
+                allowedUnitIds.insert(units->begin(), units->end());
+            }
+        }
+
         createGroup(unusedValue, positions, units, values, ruinInfo.guard.subraceTypes,
-                    ruinInfo.guard.forbiddenIds);
+                    allowedUnitIds, ruinInfo.guard.forbiddenIds);
         tightenGroup(unusedValue, positions, units, ruinInfo.guard.subraceTypes,
-                     ruinInfo.guard.forbiddenIds);
+                     allowedUnitIds, ruinInfo.guard.forbiddenIds);
 
         createGroupUnits(ruin->getGroup(), units);
     }
@@ -2417,7 +2477,10 @@ Stack* TemplateZone::placeZoneGuard(const Position& position, const StackInfo& g
 
     CMidgardID ownerId{mapGenerator->getPlayerId(guardInfo.owner)};
     CMidgardID subraceId;
-    if (guardInfo.owner == RaceType::Neutral && guardInfo.subrace != SubRaceType::Neutral) {
+    if (!guardInfo.customSubraceUid.empty()) {
+        subraceId = mapGenerator->getSubraceId(guardInfo.customSubraceUid);
+    } else if (guardInfo.owner == RaceType::Neutral
+               && guardInfo.subrace != SubRaceType::Neutral) {
         subraceId = mapGenerator->getSubraceId(guardInfo.subrace);
     } else {
         subraceId = mapGenerator->getSubraceId(guardInfo.owner);
@@ -3041,9 +3104,18 @@ void TemplateZone::placeCapital()
         const std::size_t value{rand.pickValue(garrisonValue)};
         const auto values{constrainedSum(Group::groupSize, value, rand)};
 
+        std::set<CMidgardID> allowedUnitIds;
+        for (const auto& uid : garrison.customSubraceUids) {
+            auto units = mapGenerator->getCustomSubraceUnits(uid);
+            if (units) {
+                allowedUnitIds.insert(units->begin(), units->end());
+            }
+        }
+
         createGroup(unusedValue, positions, units, values, garrison.subraceTypes,
-                    garrison.forbiddenIds);
-        tightenGroup(unusedValue, positions, units, garrison.subraceTypes, garrison.forbiddenIds);
+                    allowedUnitIds, garrison.forbiddenIds);
+        tightenGroup(unusedValue, positions, units, garrison.subraceTypes, allowedUnitIds,
+                     garrison.forbiddenIds);
         createGroupUnits(capitalCity->getGroup(), units);
     }
 
@@ -3428,7 +3500,10 @@ void TemplateZone::placeStacks()
 
         CMidgardID ownerId{mapGenerator->getPlayerId(stackGroup.owner)};
         CMidgardID subraceId;
-        if (stackGroup.owner == RaceType::Neutral && stackGroup.subrace != SubRaceType::Neutral) {
+        if (!stackGroup.customSubraceUid.empty()) {
+            subraceId = mapGenerator->getSubraceId(stackGroup.customSubraceUid);
+        } else if (stackGroup.owner == RaceType::Neutral
+                   && stackGroup.subrace != SubRaceType::Neutral) {
             subraceId = mapGenerator->getSubraceId(stackGroup.subrace);
         } else {
             subraceId = mapGenerator->getSubraceId(stackGroup.owner);
@@ -3447,6 +3522,7 @@ void TemplateZone::placeStacks()
         StackInfo randomStackInfo;
         randomStackInfo.groupInfo.value = stackGroup.groupInfo.value / stackGroup.count;
         randomStackInfo.groupInfo.subraceTypes = stackGroup.groupInfo.subraceTypes;
+        randomStackInfo.groupInfo.customSubraceUids = stackGroup.groupInfo.customSubraceUids;
         randomStackInfo.groupInfo.forbiddenIds = stackGroup.groupInfo.forbiddenIds;
         randomStackInfo.leaderIds = stackGroup.leaderIds;
         randomStackInfo.leaderModifiers = stackGroup.leaderModifiers;

@@ -56,6 +56,7 @@ struct GroupInfo
 {
     // Subraces of units allowed in group
     std::set<SubRaceType> subraceTypes;
+    std::set<std::string> customSubraceUids;
     // Group loot
     LootInfo loot;
     // Group units value
@@ -74,6 +75,8 @@ struct StackInfo
     RaceType owner{RaceType::Neutral};
     // Owner subrace
     SubRaceType subrace{SubRaceType::Neutral};
+    // Custom subrace uid
+    std::string customSubraceUid;
     // Stack order
     OrderType order{OrderType::Normal};
     // Custom leader name
@@ -106,6 +109,8 @@ struct CityInfo
     RaceType owner{RaceType::Neutral};
     // Owner subrace
     SubRaceType subrace{SubRaceType::Neutral};
+    // Custom subrace uid
+    std::string customSubraceUid;
     // AI-priority
     AiPriority aiPriority;
     // City tier
@@ -200,6 +205,7 @@ struct MercenaryInfo
     StackInfo guard;
     // Subraces of units allowed for hire
     std::set<SubRaceType> subraceTypes;
+    std::set<std::string> customSubraceUids;
     // Units that must be generated
     std::vector<MercenaryUnitInfo> requiredUnits;
     // Custom mercenary name and description
