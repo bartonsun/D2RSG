@@ -82,6 +82,10 @@ public:
     virtual const UnitInfoArray& getLeaders() const = 0;
     // Returns array of soldier units
     virtual const UnitInfoArray& getSoldiers() const = 0;
+    // Returns array of noble units
+    virtual const UnitInfoArray& getNobles() const = 0;
+    // Returns array of guardian units
+    virtual const UnitInfoArray& getGuardians() const = 0;
     // Returns minimal leader unit value
     virtual int getMinLeaderValue() const = 0;
     // Returns maximal leader unit value
@@ -90,6 +94,14 @@ public:
     virtual int getMinSoldierValue() const = 0;
     // Returns maximal soldier unit value
     virtual int getMaxSoldierValue() const = 0;
+    // Returns minimal noble unit value
+    virtual int getMinNobleValue() const = 0;
+    // Returns maximal noble unit value
+    virtual int getMaxNobleValue() const = 0;
+    // Returns minimal guardian unit value
+    virtual int getMinGuardianValue() const = 0;
+    // Returns maximal guardian unit value
+    virtual int getMaxGuardianValue() const = 0;
 
     // Returns all items
     virtual const ItemsInfo& getItemsInfo() const = 0;

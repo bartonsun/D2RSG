@@ -37,6 +37,12 @@ UnitInfo* pickLeader(RandomGenerator& random, const UnitFilterList& filters);
 // Picks random soldier from list after applying filters
 UnitInfo* pickUnit(RandomGenerator& random, const UnitFilterList& filters);
 
+// Picks random noble from list after applying filters
+UnitInfo* pickNoble(RandomGenerator& random, const UnitFilterList& filters);
+
+// Picks random guardian from list after applying filters
+UnitInfo* pickGuardian(RandomGenerator& random, const UnitFilterList& filters);
+
 // These below are predefined filters
 
 // Remove units that are forbidden in generator settings from pick
