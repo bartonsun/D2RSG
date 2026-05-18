@@ -69,17 +69,25 @@ PlayerSubraceIdPair MapGenerator::createPlayer(RaceType race)
 
     insertObject(std::move(player));
 
-    // Create player subrace
-    auto subraceId{createId(CMidgardID::Type::SubRace)};
-    auto subrace{std::make_unique<SubRace>(subraceId)};
-    subrace->setPlayerId(playerId);
-
+    // Search subrace in cache
     auto subraceType{map->getSubRaceType(race)};
-    subrace->setType(subraceType);
-    subrace->setBanner(map->getSubRaceBanner(subraceType));
-    insertObject(std::move(subrace));
+    CMidgardID subraceId = map->getNeutralSubraceId(subraceType);
+    if (subraceId == emptyId) {
+        auto it = subraceCache.find(subraceType);
+        if (it != subraceCache.end()) {
+            subraceId = it->second;
+        }
+    }
+    // Create player subrace
+    if (subraceId == emptyId) {
+        subraceId = createId(CMidgardID::Type::SubRace);
+        auto subrace = std::make_unique<SubRace>(subraceId);
+        subrace->setPlayerId(playerId);
+        subrace->setType(subraceType);
+        subrace->setBanner(map->getSubRaceBanner(subraceType));
+        insertObject(std::move(subrace));
 
-    if (race == RaceType::Neutral) {
+        subraceCache[subraceType] = subraceId;
         map->registerNeutralSubrace(subraceType, subraceId);
     }
 

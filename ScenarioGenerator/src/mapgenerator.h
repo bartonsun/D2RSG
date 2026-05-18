@@ -196,6 +196,7 @@ public:
     CMidgardID neutralSubraceId;
     std::map<std::string, CMidgardID> customSubraceIds;
     std::map<std::string, std::set<CMidgardID>> customSubraceUnits;
+    std::map<SubRaceType, CMidgardID> subraceCache;
     std::size_t zonesTotal{}; // Zones with capital town only
     bool debug{};
 };
