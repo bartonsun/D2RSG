@@ -340,6 +340,8 @@ void TemplateZone::createObstacles()
         bool blockFill = (fillGround == GroundType::Mountain); // false для Water/Forest/Plain
 
         for (auto& tile : tileInfo) {
+            if (maskedTiles.count(tile))
+                continue;
             if (mapGenerator->shouldBeBlocked(tile) && !isBorderTile(tile)) {
                 auto& mapTile = mapGenerator->map->getTile(tile);
                 mapTile.setTerrainGround(TerrainType::Neutral, fillGround);
@@ -696,6 +698,7 @@ void TemplateZone::placeObject(std::unique_ptr<Fortification>&& fortification,
                 continue;
             }
             mapGenerator->setOccupied(tile, TileType::Free);
+            maskedTiles.insert(tile);
         }
     }
 
@@ -3033,6 +3036,8 @@ void TemplateZone::applyFill()
             if (freePaths.count(tile) || mapGenerator->isFree(tile)
                 || mapGenerator->isPossible(tile))
                 continue;
+            if (maskedTiles.count(tile))
+                continue;
 
             for (const auto& [size, mountains] : possibleObstacles) {
                 if (size == 1 && possibleObstacles.size() > 1)
@@ -3080,6 +3085,8 @@ void TemplateZone::applyFill()
         if (isBorderTile(tile) || mapGenerator->isUsed(tile))
             continue;
         if (freePaths.count(tile) || mapGenerator->isFree(tile) || mapGenerator->isPossible(tile))
+            continue;
+        if (maskedTiles.count(tile))
             continue;
 
         auto& mapTile = mapGenerator->map->getTile(tile);
@@ -4115,6 +4122,11 @@ const std::vector<RoadInfo>& TemplateZone::getRoads() const
     return roads;
 }
 
+void TemplateZone::addMaskedTile(const Position& position)
+{
+    maskedTiles.insert(position);
+}
+
 bool TemplateZone::isInTheZone(const Position& position) const
 {
     return mapGenerator->getZoneId(position) == id;
@@ -4123,6 +4135,11 @@ bool TemplateZone::isInTheZone(const Position& position) const
 bool TemplateZone::isBorderTile(const Position& position) const
 {
     return borderTiles.count(position) > 0;
+}
+
+bool TemplateZone::isMaskedTile(const Position& position)
+{
+    return maskedTiles.count(position) > 0;
 }
 
 bool TemplateZone::createRoad(const Position& source, const Position& destination)

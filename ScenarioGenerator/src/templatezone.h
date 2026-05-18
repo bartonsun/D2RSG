@@ -295,10 +295,14 @@ struct TemplateZone : public ZoneOptions
 
     const std::vector<RoadInfo>& getRoads() const;
 
+    void addMaskedTile(const Position& position);
+
     // Returns true if tile with specified position belongs to zone
     bool isInTheZone(const Position& position) const;
 
     bool isBorderTile(const Position& position) const;
+
+    bool isMaskedTile(const Position& position);
 
 private:
     bool createRoad(const Position& source, const Position& destination);
@@ -331,6 +335,7 @@ private:
     std::set<Position> freePaths;     // Paths of free tiles that all objects will be linked to
     std::set<Position> roadNodes;     // Tiles to be connected with roads
     std::set<Position> borderTiles;   // Zone border tiles
+    std::set<Position> maskedTiles;   // Tiles around objects without decorations
 
     std::vector<RoadInfo> roads; // All tiles with roads
     CMidgardID ownerId{emptyId}; // Player assigned to zone

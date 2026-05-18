@@ -228,7 +228,17 @@ std::set<Position> CapitalDecoration::getArea(TemplateZone& zone,
                                               Map& map,
                                               RandomGenerator& rand)
 {
-    return getMapElementArea(*capital, 3, 3, zone, mapGenerator, map, rand);
+    auto area = getMapElementArea(*capital, 3, 3, zone, mapGenerator, map, rand);
+    std::vector<Position> toRemove;
+    for (const auto& tile : area) {
+        if (zone.isMaskedTile(tile)) {
+            toRemove.push_back(tile);
+        }
+    }
+    for (const auto& tile : toRemove) {
+        area.erase(tile);
+    }
+    return area;
 }
 
 RaceType CapitalDecoration::getLandmarksRace(TemplateZone& zone,
@@ -286,7 +296,18 @@ std::set<Position> VillageDecoration::getArea(TemplateZone& zone,
                                               Map& map,
                                               RandomGenerator& rand)
 {
-    return getMapElementArea(*village, 4, 4, zone, mapGenerator, map, rand);
+    auto area = getMapElementArea(*village, 4, 4, zone, mapGenerator, map, rand);
+    std::vector<Position> toRemove;
+    for (const auto& tile : area) {
+        if (zone.isMaskedTile(tile)) {
+            toRemove.push_back(tile);
+        }
+    }
+    for (const auto& tile : toRemove) {
+        area.erase(tile);
+    }
+    return area;
+
 }
 
 int VillageDecoration::getMinLandmarkDistance(const LandmarkInfo& info) const
@@ -320,6 +341,52 @@ bool CrystalDecoration::decorate(TemplateZone& zone,
                                  Map& map,
                                  RandomGenerator& rand)
 {
+    const Position& crystalPos = crystal->getPosition();
+    auto& mg = mapGenerator;
+
+    // Create land for tile with crystal
+    Tile& crystalTile = map.getTile(crystalPos);
+    if (crystalTile.ground != GroundType::Plain || crystalTile.terrain != TerrainType::Neutral) {
+        crystalTile.setTerrainGround(TerrainType::Neutral, GroundType::Plain);
+        mg.setOccupied(crystalPos, TileType::Free);
+    }
+
+    // Check all directions for land tile
+    bool hasAccess = false;
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dy = -1; dy <= 1; ++dy) {
+            if (dx == 0 && dy == 0)
+                continue;
+            Position n = crystalPos + Position{dx, dy};
+            if (!map.isInTheMap(n))
+                continue;
+            const Tile& tile = map.getTile(n);
+            if (tile.ground == GroundType::Plain && !mg.isUsed(n) && !mg.isBlocked(n)) {
+                hasAccess = true;
+                break;
+            }
+        }
+        if (hasAccess)
+            break;
+    }
+
+    // Create land tiles, if needed
+    if (!hasAccess) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            for (int dy = -1; dy <= 1; ++dy) {
+                if (dx == 0 && dy == 0)
+                    continue;
+                Position n = crystalPos + Position{dx, dy};
+                if (!map.isInTheMap(n) || mg.getZoneId(n) != zone.id)
+                    continue;
+                Tile& tile = map.getTile(n);
+                tile.setTerrainGround(TerrainType::Neutral, GroundType::Plain);
+                mg.setOccupied(n, TileType::Free);
+                break;
+            }
+        }
+    }
+
     auto decorationsArea{getArea(zone, mapGenerator, map, rand)};
     if (decorationsArea.empty()) {
         // No place for landmarks or forests
