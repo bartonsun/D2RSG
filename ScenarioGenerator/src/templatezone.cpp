@@ -322,67 +322,93 @@ void TemplateZone::createObstacles()
         std::cout << "Place mountains\n";
     }
 
-    using MountainsVector = std::vector<GeneratorSettings::Mountain>;
-    using MountainPair = std::pair<int /* mountain size */, MountainsVector>;
+    if (fillType != TemplateZoneFillType::None && fillType != TemplateZoneFillType::Mountain) {
+        GroundType fillGround;
+        switch (fillType) {
+        case TemplateZoneFillType::Water:
+            fillGround = GroundType::Water;
+            break;
+        case TemplateZoneFillType::Forest:
+            fillGround = GroundType::Forest;
+            break;
+        case TemplateZoneFillType::Plain:
+            fillGround = GroundType::Plain;
+            break;
+        default:
+            return;
+        }
+        bool blockFill = (fillGround == GroundType::Mountain); // false для Water/Forest/Plain
 
-    std::map<int /* mountain size */, MountainsVector> obstaclesBySize;
-    std::vector<MountainPair> possibleObstacles;
+        for (auto& tile : tileInfo) {
+            if (mapGenerator->shouldBeBlocked(tile) && !isBorderTile(tile)) {
+                auto& mapTile = mapGenerator->map->getTile(tile);
+                mapTile.setTerrainGround(TerrainType::Neutral, fillGround);
+                mapGenerator->setOccupied(tile, blockFill ? TileType::Blocked : TileType::Free);
+            }
+        }
+    } else {
+        using MountainsVector = std::vector<GeneratorSettings::Mountain>;
+        using MountainPair = std::pair<int /* mountain size */, MountainsVector>;
 
-    const auto& knownMountains = getGeneratorSettings().mountains;
-    for (const auto& mountain : knownMountains) {
-        obstaclesBySize[mountain.size].push_back(mountain);
-    }
+        std::map<int /* mountain size */, MountainsVector> obstaclesBySize;
+        std::vector<MountainPair> possibleObstacles;
 
-    for (const auto& [size, vector] : obstaclesBySize) {
-        possibleObstacles.push_back({size, vector});
-    }
-
-    std::sort(possibleObstacles.begin(), possibleObstacles.end(),
-              [](const MountainPair& a, const MountainPair& b) {
-                  // Bigger mountains first
-                  return a.first > b.first;
-              });
-
-    auto tryPlaceMountainHere = [this, &possibleObstacles](const Position& tile, int index) {
-        auto& rand{mapGenerator->randomGenerator};
-
-        const auto it{getRandomElement(possibleObstacles[index].second, rand)};
-
-        const MapElement mountainElement({it->size, it->size});
-        if (!canObstacleBePlacedHere(mountainElement, tile)) {
-            return false;
+        const auto& knownMountains = getGeneratorSettings().mountains;
+        for (const auto& mountain : knownMountains) {
+            obstaclesBySize[mountain.size].push_back(mountain);
         }
 
-        // If size is 3 or 5, roll 10% chance to spawn mountain landmark
-        // TODO: remove hardcoded values
-        if ((it->size == 3 || it->size == 5) && rand.chance(10)) {
-            auto noWrongSize = [size = it->size](const LandmarkInfo* info) {
-                return info->getSize().x != size || info->getSize().y != size;
-            };
-
-            auto info{pickMountainLandmark(rand, {noWrongSize})};
-            assert(info != nullptr);
-
-            auto landmarkId{mapGenerator->createId(CMidgardID::Type::Landmark)};
-            auto landmark{std::make_unique<Landmark>(landmarkId, info->getSize())};
-            landmark->setTypeId(info->getLandmarkId());
-
-            placeObject(std::move(landmark), tile);
-        } else {
-            placeMountain(tile, mountainElement.getSize(), it->image);
+        for (const auto& [size, vector] : obstaclesBySize) {
+            possibleObstacles.push_back({size, vector});
         }
 
-        return true;
-    };
+        std::sort(possibleObstacles.begin(), possibleObstacles.end(),
+                  [](const MountainPair& a, const MountainPair& b) {
+                      // Bigger mountains first
+                      return a.first > b.first;
+                  });
 
-    for (const auto& tile : tileInfo) {
-        // Fill tiles that should be blocked with obstacles
-        if (mapGenerator->shouldBeBlocked(tile)) {
+        auto tryPlaceMountainHere = [this, &possibleObstacles](const Position& tile, int index) {
+            auto& rand{mapGenerator->randomGenerator};
 
-            // Start from biggets obstacles
-            for (int i = 0; i < (int)possibleObstacles.size(); ++i) {
-                if (tryPlaceMountainHere(tile, i)) {
-                    break;
+            const auto it{getRandomElement(possibleObstacles[index].second, rand)};
+
+            const MapElement mountainElement({it->size, it->size});
+            if (!canObstacleBePlacedHere(mountainElement, tile)) {
+                return false;
+            }
+
+            // If size is 3 or 5, roll 10% chance to spawn mountain landmark
+            // TODO: remove hardcoded values
+            if ((it->size == 3 || it->size == 5) && rand.chance(10)) {
+                auto noWrongSize = [size = it->size](const LandmarkInfo* info) {
+                    return info->getSize().x != size || info->getSize().y != size;
+                };
+
+                auto info{pickMountainLandmark(rand, {noWrongSize})};
+                assert(info != nullptr);
+
+                auto landmarkId{mapGenerator->createId(CMidgardID::Type::Landmark)};
+                auto landmark{std::make_unique<Landmark>(landmarkId, info->getSize())};
+                landmark->setTypeId(info->getLandmarkId());
+
+                placeObject(std::move(landmark), tile);
+            } else {
+                placeMountain(tile, mountainElement.getSize(), it->image);
+            }
+
+            return true;
+        };
+
+        for (const auto& tile : tileInfo) {
+            // Fill tiles that should be blocked with obstacles
+            if (mapGenerator->shouldBeBlocked(tile)) {
+
+                // Start from biggets obstacles
+                for (int i = 0; i < (int)possibleObstacles.size(); ++i) {
+                    if (tryPlaceMountainHere(tile, i)) {
+                        break;
+                    }
                 }
             }
         }
@@ -969,7 +995,8 @@ bool TemplateZone::guardObject(const MapElement& mapElement, const StackInfo& gu
         return false;
     }
 
-    auto stack{createStack(guardInfo, true)};
+    bool neutralOwner = guardInfo.owner == RaceType::Neutral;
+    auto stack{createStack(guardInfo, neutralOwner)};
     if (!stack) {
         // Allow no guard or other object in front of this object
         for (const auto& tile : tiles) {
@@ -982,12 +1009,7 @@ bool TemplateZone::guardObject(const MapElement& mapElement, const StackInfo& gu
     }
 
     CMidgardID ownerId{mapGenerator->getPlayerId(guardInfo.owner)};
-    CMidgardID subraceId;
-    if (guardInfo.owner == RaceType::Neutral && guardInfo.subrace != SubRaceType::Neutral) {
-        subraceId = mapGenerator->getSubraceId(guardInfo.subrace);
-    } else {
-        subraceId = mapGenerator->getSubraceId(guardInfo.owner);
-    }
+    CMidgardID subraceId{mapGenerator->getSubraceId(guardInfo)};
 
     if (ownerId == emptyId || subraceId == emptyId) {
         ownerId = mapGenerator->getNeutralPlayerId();
@@ -1367,8 +1389,8 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
     const auto& leaders{getGameInfo()->getLeaders()};
 
     if (!stackInfo.leaderIds.empty()) {
-        leaderInfo = pickStackLeader(unusedValue, valuesConsumed, unitValues, 
-                                       stackInfo.leaderIds);
+        leaderInfo = pickStackLeader(unusedValue, valuesConsumed, unitValues,
+            stackInfo.leaderIds);
     }
 
     if (!leaderInfo) {
@@ -1411,24 +1433,45 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
 
     GroupUnits soldiers = {{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}};
 
-    // Pick soldier units 1 by 1, starting from value that was not used for leader
-    if (valuesConsumed < unitValues.size()) {
-        std::vector<std::size_t> soldierValues(unitValues.begin() + valuesConsumed,
-                                               unitValues.end());
+    const bool isNeutralLeader = neutralOwner && (leaderInfo->getUnitType() == UnitType::Leader);
+    int maxSoldiers = 0;
 
-        createGroup(unusedValue, positions, soldiers, soldierValues,
-                    stackInfo.groupInfo.subraceTypes,
-                    allowedUnitIds, stackInfo.groupInfo.forbiddenIds);
+    if (isNeutralLeader) {
+        maxSoldiers = 5;
+    } else {
+        int baseLeadership = leaderInfo->isBig() ? 2 : 1;
+        int modifiersLeadership = 0;
+        if (!stackInfo.leaderModifiers.empty()) {
+            for (auto modifierId : stackInfo.leaderModifiers) {
+                if (modifierId == CMidgardID("G000UM9031")) {
+                    modifiersLeadership += 1;
+                }
+            }
+        }
+        maxSoldiers = std::min(6, std::max(0, leaderInfo->getLeadership() - baseLeadership + modifiersLeadership));
+        unitValues = constrainedSum(maxSoldiers, strength - leaderInfo->getValue(), rand);
+        unusedValue = 0;
+        valuesConsumed = 0;
     }
 
-    // Check if we still have unused value and free positions in group.
-    // This should help with better stack value usage
-    // and reduce number of stacks with single ranged or support leader
-    tightenGroup(unusedValue, positions, soldiers, stackInfo.groupInfo.subraceTypes,
-        allowedUnitIds, stackInfo.groupInfo.forbiddenIds);
+    int soldiersToCreate = std::min(maxSoldiers,
+                                    static_cast<int>(unitValues.size() - valuesConsumed));
+
+    if (soldiersToCreate > 0 && valuesConsumed < unitValues.size()) {
+        std::vector<std::size_t> soldierValues(unitValues.begin() + valuesConsumed,
+                                               unitValues.begin() + valuesConsumed
+                                                   + soldiersToCreate);
+        createGroup(unusedValue, positions, soldiers, soldierValues,
+                    stackInfo.groupInfo.subraceTypes, allowedUnitIds,
+                    stackInfo.groupInfo.forbiddenIds, soldiersToCreate);
+    }
+
+    if (neutralOwner) {
+        tightenGroup(unusedValue, positions, soldiers, stackInfo.groupInfo.subraceTypes,
+                     allowedUnitIds, stackInfo.groupInfo.forbiddenIds);
+    }
 
     if (mapGenerator->isDebugMode()) {
-        // +1 because of leader
         int unitsCreated{1};
         int createdValue = leaderInfo->getValue();
 
@@ -1442,7 +1485,6 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
             createdValue += unitInfo->getValue();
 
             if (unitInfo->isBig()) {
-                // Skip second part of big unit
                 ++position;
             }
         }
@@ -1470,12 +1512,13 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
 
         if (unitInfo->isBig()) {
             ++leadershipRequired;
-            // Skip second part of big unit
             ++position;
         }
     }
 
-    if (leaderInfo->getLeadership() < leadershipRequired) {
+    // Add leadership for neutral leader
+    if (neutralOwner && leaderInfo->getUnitType() == UnitType::Leader
+        && leaderInfo->getLeadership() < leadershipRequired) {
         Unit* leaderUnit = mapGenerator->map->find<Unit>(stack->getLeader());
         const int diff = leadershipRequired - leaderInfo->getLeadership();
 
@@ -1551,33 +1594,41 @@ const UnitInfo* TemplateZone::pickStackLeader(std::size_t& unusedValue,
 {
     auto& rand{mapGenerator->randomGenerator};
 
-    auto leadersRequired = [leaderIds](const UnitInfo* info) {
-        return !contains(leaderIds, info->getUnitId());
-    };
-
-    std::size_t unused = unusedValue;
-    const UnitInfo* leaderInfo{pickLeader(rand, {leadersRequired})};
-
-    if (leaderInfo) {
-        for (std::size_t i = 0; i < unitValues.size(); ++i) {
-            unused += unitValues[i];
-            valuesConsumed = i + 1;
-            if (i == 0 and leaderInfo->isBig()) {
-                continue;
-            }
-            if (unused > leaderInfo->getValue()) {
-                break;
-            }
+    std::vector<const UnitInfo*> candidates;
+    for (const auto* info : getGameInfo()->getLeaders()) {
+        if (leaderIds.count(info->getUnitId())) {
+            candidates.push_back(info);
         }
-        if (unused < leaderInfo->getValue()) {
-            unusedValue = 0;
-        } else {
-            unusedValue = unused - leaderInfo->getValue();
+    }
+    for (const auto* info : getGameInfo()->getNobles()) {
+        if (leaderIds.count(info->getUnitId())) {
+            candidates.push_back(info);
         }
-        return leaderInfo;
     }
 
-    return nullptr;
+    if (candidates.empty()) {
+        return nullptr;
+    }
+
+    const UnitInfo* leaderInfo = *getRandomElement(candidates, rand);
+
+    std::size_t unused = unusedValue;
+    for (std::size_t i = 0; i < unitValues.size(); ++i) {
+        unused += unitValues[i];
+        valuesConsumed = i + 1;
+        if (i == 0 && leaderInfo->isBig()) {
+            continue;
+        }
+        if (unused > leaderInfo->getValue()) {
+            break;
+        }
+    }
+    if (unused < leaderInfo->getValue()) {
+        unusedValue = 0;
+    } else {
+        unusedValue = unused - leaderInfo->getValue();
+    }
+    return leaderInfo;
 }
 
 const UnitInfo* TemplateZone::createStackLeader(std::size_t& unusedValue,
@@ -1681,14 +1732,15 @@ void TemplateZone::createGroup(std::size_t& unusedValue,
                                const std::vector<std::size_t>& unitValues,
                                const std::set<SubRaceType>& allowedSubraces,
                                const std::set<CMidgardID>& allowedUnitIds,
-                               const std::set<CMidgardID>& forbiddenIds)
+                               const std::set<CMidgardID>& forbiddenIds,
+                               int& remainingSlots)
 {
     auto& rand{mapGenerator->randomGenerator};
 
     // Pick soldier units 1 by 1, starting from value that was not used for leader
-    for (std::size_t i = 0; i < unitValues.size() && !positions.empty(); ++i) {
+    for (std::size_t i = 0; i < unitValues.size() && !positions.empty() && remainingSlots > 0; ++i) {
         auto value = unitValues[i] + unusedValue;
-        float minValueCoeff = 0.95f - positions.size() * 0.05f;
+        float minValueCoeff = 0.95f - remainingSlots * 0.05f;
         auto minValue = value * minValueCoeff;
 
         auto noWrongValue = [minValue, value](const UnitInfo* info) {
@@ -1703,7 +1755,9 @@ void TemplateZone::createGroup(std::size_t& unusedValue,
         // Second position in case of big unit
         const auto secondPosition = frontline ? position + 1 : position - 1;
         // We can place big unit if front and back line positions are free
-        const auto canPlaceBig = positions.count(position) && positions.count(secondPosition) && positions.size() > unitValues.size();
+        const auto canPlaceBig = (remainingSlots >= 2) && positions.count(position)
+                                 && positions.count(secondPosition)
+                                 && positions.size() > unitValues.size();
 
         auto filter = [allowedSubraces, &allowedUnitIds, canPlaceBig,
                        frontline](const UnitInfo* info) {
@@ -1757,12 +1811,15 @@ void TemplateZone::createGroup(std::size_t& unusedValue,
             unusedValue = value - info->getValue();
 
             if (info->isBig()) {
+                remainingSlots -= 2;
+
                 positions.erase(position);
                 groupUnits[position] = info;
 
                 positions.erase(secondPosition);
                 groupUnits[secondPosition] = info;
             } else {
+                remainingSlots -= 1;
                 // We could have picked big unit, but got a small one.
                 // Check if unit's attack range is optimal for its placement.
                 // We can adjust unit position since second position is empty
@@ -1800,7 +1857,7 @@ void TemplateZone::tightenGroup(std::size_t& unusedValue,
     // How many times we failed to pick a unit
     int failedAttempts{0};
     // How many failed attemts considered as a stop
-    const int totalFails{200};
+    const int totalFails{300};
 
     while (failedAttempts < totalFails && !positions.empty()
            && unusedValue >= getGameInfo()->getMinSoldierValue()) {
@@ -1904,7 +1961,7 @@ void TemplateZone::tightenGroup(std::size_t& unusedValue,
         } else {
             // Could not pick a unit, unused value remains the same
             // Decrease minValue range, count how many times we failed to pick
-            minValueCoeff = std::max(0.f, minValueCoeff - 0.05f);
+            minValueCoeff = std::max(0.f, minValueCoeff - 0.02f);
             ++failedAttempts;
         }
     }
@@ -1948,15 +2005,7 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
     auto village{std::make_unique<Village>(villageId)};
 
     CMidgardID ownerId{mapGenerator->getPlayerId(cityInfo.owner)};
-    CMidgardID subraceId;
-    if (!cityInfo.customSubraceUid.empty()) {
-        subraceId = mapGenerator->getSubraceId(cityInfo.customSubraceUid);
-    } else if (cityInfo.owner == RaceType::Neutral
-               && cityInfo.subrace != SubRaceType::Neutral) {
-        subraceId = mapGenerator->getSubraceId(cityInfo.subrace);
-    } else {
-        subraceId = mapGenerator->getSubraceId(cityInfo.owner);
-    }
+    CMidgardID subraceId{mapGenerator->getSubraceId(cityInfo)};
 
     if (ownerId == emptyId || subraceId == emptyId) {
         ownerId = mapGenerator->getNeutralPlayerId();
@@ -2044,8 +2093,9 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
             }
         }
 
+        int remainingSlots = cityInfo.tier;
         createGroup(unusedValue, positions, units, values, cityInfo.garrison.subraceTypes,
-                    allowedUnitIds, cityInfo.garrison.forbiddenIds);
+                    allowedUnitIds, cityInfo.garrison.forbiddenIds, remainingSlots);
         tightenGroup(unusedValue, positions, units, cityInfo.garrison.subraceTypes, allowedUnitIds,
                      cityInfo.garrison.forbiddenIds);
         createGroupUnits(villagePtr->getGroup(), units);
@@ -2438,8 +2488,9 @@ Ruin* TemplateZone::placeRuin(const Position& position, const RuinInfo& ruinInfo
             }
         }
 
+        int remainingSlots = 6;
         createGroup(unusedValue, positions, units, values, ruinInfo.guard.subraceTypes,
-                    allowedUnitIds, ruinInfo.guard.forbiddenIds);
+                    allowedUnitIds, ruinInfo.guard.forbiddenIds, remainingSlots);
         tightenGroup(unusedValue, positions, units, ruinInfo.guard.subraceTypes,
                      allowedUnitIds, ruinInfo.guard.forbiddenIds);
 
@@ -2470,21 +2521,14 @@ Stack* TemplateZone::placeZoneGuard(const Position& position, const StackInfo& g
         return nullptr;
     }
 
-    auto stack{createStack(guardInfo, true)};
+    bool neutralOwner = guardInfo.owner == RaceType::Neutral;
+    auto stack{createStack(guardInfo, neutralOwner)};
     if (!stack) {
         return nullptr;
     }
 
     CMidgardID ownerId{mapGenerator->getPlayerId(guardInfo.owner)};
-    CMidgardID subraceId;
-    if (!guardInfo.customSubraceUid.empty()) {
-        subraceId = mapGenerator->getSubraceId(guardInfo.customSubraceUid);
-    } else if (guardInfo.owner == RaceType::Neutral
-               && guardInfo.subrace != SubRaceType::Neutral) {
-        subraceId = mapGenerator->getSubraceId(guardInfo.subrace);
-    } else {
-        subraceId = mapGenerator->getSubraceId(guardInfo.owner);
-    }
+    CMidgardID subraceId{mapGenerator->getSubraceId(guardInfo)};
 
     if (ownerId == emptyId || subraceId == emptyId) {
         ownerId = mapGenerator->getNeutralPlayerId();
@@ -3085,12 +3129,14 @@ void TemplateZone::placeCapital()
         const UnitInfo* guardianInfo{unitsInfo.find(raceInfo.getGuardianUnitId())->second.get()};
         assert(guardianInfo);
 
+        int remainingSlots = 6;
         // Create capital garrison
         std::size_t unusedValue{};
         // Capital can fit entire group in its garrison.
         std::set<int> positions{0, 1, 2, 3, 4, 5};
         GroupUnits units = {{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}};
         if (capital.guardian == true) {
+            remainingSlots -= 1;
             // Slot 2 is reserved for a capital guardian
             positions.erase(2);
             units[2] = guardianInfo;
@@ -3113,7 +3159,7 @@ void TemplateZone::placeCapital()
         }
 
         createGroup(unusedValue, positions, units, values, garrison.subraceTypes,
-                    allowedUnitIds, garrison.forbiddenIds);
+                    allowedUnitIds, garrison.forbiddenIds, remainingSlots);
         tightenGroup(unusedValue, positions, units, garrison.subraceTypes, allowedUnitIds,
                      garrison.forbiddenIds);
         createGroupUnits(capitalCity->getGroup(), units);
@@ -3499,15 +3545,7 @@ void TemplateZone::placeStacks()
         }
 
         CMidgardID ownerId{mapGenerator->getPlayerId(stackGroup.owner)};
-        CMidgardID subraceId;
-        if (!stackGroup.customSubraceUid.empty()) {
-            subraceId = mapGenerator->getSubraceId(stackGroup.customSubraceUid);
-        } else if (stackGroup.owner == RaceType::Neutral
-                   && stackGroup.subrace != SubRaceType::Neutral) {
-            subraceId = mapGenerator->getSubraceId(stackGroup.subrace);
-        } else {
-            subraceId = mapGenerator->getSubraceId(stackGroup.owner);
-        }
+        CMidgardID subraceId{mapGenerator->getSubraceId(stackGroup)};
 
         if (ownerId == emptyId || subraceId == emptyId) {
             ownerId = mapGenerator->getNeutralPlayerId();

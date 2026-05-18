@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the random scenario generator for Disciples 2.
  * (https://github.com/VladimirMakeev/D2RSG)
  * Copyright (C) 2023 Vladimir Makeev.
@@ -79,6 +79,10 @@ PlayerSubraceIdPair MapGenerator::createPlayer(RaceType race)
     subrace->setBanner(map->getSubRaceBanner(subraceType));
     insertObject(std::move(subrace));
 
+    if (race == RaceType::Neutral) {
+        map->registerNeutralSubrace(subraceType, subraceId);
+    }
+
     PlayerSubraceIdPair pair{playerId, subraceId};
 
     auto it{raceToPlayers.find(race)};
@@ -101,12 +105,9 @@ MapPtr MapGenerator::generate()
     neutralPlayerId = playerSubraceIds.first;
     neutralSubraceId = playerSubraceIds.second;
 
-    createCustomSubraces();
-
     generateZones();
     // Clear map so that all tiles are unguarded
     map->calculateGuardingCreaturePositions();
-
     if (!fillZones()) {
         return nullptr;
     }
@@ -233,9 +234,7 @@ bool MapGenerator::fillZones()
     // In this case mountains on zone boundaries can be made bigger.
     // Place actual obstacles matching zone terrain
     for (auto& it : zones) {
-        if (it.second->fillType == TemplateZoneFillType::None) {
-            it.second->createObstacles();
-        }
+        it.second->createObstacles();
     }
 
     if constexpr (debugObstacles) {
@@ -245,7 +244,6 @@ bool MapGenerator::fillZones()
     for (auto& it : zones) {
         it.second->connectRoads();
     }
-
     for (auto& it : zones) {
         if (it.second->fillType != TemplateZoneFillType::None) {
             it.second->applyFill();
@@ -864,8 +862,9 @@ std::map<SubRaceType, CMidgardID> subraceCache;
 CMidgardID MapGenerator::getSubraceId(SubRaceType subraceType)
 {
     CMidgardID id = map->getNeutralSubraceId(subraceType);
-    if (id != emptyId)
+    if (id != emptyId) {
         return id;
+    }
 
     auto it = subraceCache.find(subraceType);
     if (it != subraceCache.end()) {
@@ -956,7 +955,7 @@ void MapGenerator::createCustomSubraces()
         CMidgardID subraceId = createId(CMidgardID::Type::SubRace);
         auto subrace = std::make_unique<SubRace>(subraceId);
         subrace->setPlayerId(neutralPlayerId);
-        subrace->setType(SubRaceType::Custom);
+        subrace->setType(SubRaceType::Neutral);
         subrace->setBanner(info.banner);
         subrace->setName(info.name);
 
@@ -974,6 +973,28 @@ CMidgardID MapGenerator::getSubraceId(const std::string& uid) const
 {
     auto it = customSubraceIds.find(uid);
     return (it != customSubraceIds.end()) ? it->second : emptyId;
+}
+
+CMidgardID MapGenerator::getSubraceId(const StackInfo& info)
+{
+    if (!info.customSubraceUid.empty()) {
+        return getSubraceId(info.customSubraceUid);
+    }
+    if (info.owner == RaceType::Neutral && info.subrace != SubRaceType::Neutral) {
+        return getSubraceId(info.subrace);
+    }
+    return getSubraceId(info.owner);
+}
+
+CMidgardID MapGenerator::getSubraceId(const CityInfo& info)
+{
+    if (!info.customSubraceUid.empty()) {
+        return getSubraceId(info.customSubraceUid);
+    }
+    if (info.owner == RaceType::Neutral && info.subrace != SubRaceType::Neutral) {
+        return getSubraceId(info.subrace);
+    }
+    return getSubraceId(info.owner);
 }
 
 const std::set<CMidgardID>* MapGenerator::getCustomSubraceUnits(const std::string& uid) const

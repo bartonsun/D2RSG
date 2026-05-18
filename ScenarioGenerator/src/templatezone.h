@@ -226,7 +226,8 @@ struct TemplateZone : public ZoneOptions
                      const std::vector<std::size_t>& unitValues,
                      const std::set<SubRaceType>& allowedSubraces,
                      const std::set<CMidgardID>& allowedUnitIds,
-                     const std::set<CMidgardID>& forbiddenIds);
+                     const std::set<CMidgardID>& forbiddenIds,
+                     int& remainingSlots);
 
     // Tightens group by rolling additional soldier units
     void tightenGroup(std::size_t& unusedValue,

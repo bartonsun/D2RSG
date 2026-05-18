@@ -172,6 +172,8 @@ public:
     }
 
     CMidgardID getSubraceId(const std::string& customName) const;
+    CMidgardID getSubraceId(const StackInfo& info);
+    CMidgardID getSubraceId(const CityInfo& info);
     void createCustomSubraces();
 
     const std::set<CMidgardID>* getCustomSubraceUnits(const std::string& uid) const;
