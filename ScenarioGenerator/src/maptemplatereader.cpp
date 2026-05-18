@@ -476,6 +476,7 @@ static void readCapital(CapitalInfo& capital, const sol::table& table)
     capital.name = readString(table, "name", "");
     capital.gapMask = readValue(table, "gapMask", 0, 0, 15);
     capital.guardian = readValue(table, "guardian", true);
+    capital.startingStack = readValue(table, "startingStack", true);
     readAiPriority(capital.aiPriority, table);
 }
 

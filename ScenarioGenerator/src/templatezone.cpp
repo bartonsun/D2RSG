@@ -3187,31 +3187,7 @@ void TemplateZone::placeCapital()
         }
     }
 
-    const auto* leaderInfo{unitsInfo.find(raceInfo.getLeaderIds()[0])->second.get()};
-    assert(leaderInfo);
-
-    // Create starting leader unit
-    auto leaderId{mapGenerator->createId(CMidgardID::Type::Unit)};
-    auto leader{std::make_unique<Unit>(leaderId)};
-    leader->setImplId(leaderInfo->getUnitId());
-    leader->setHp(leaderInfo->getHp());
-    leader->setName(getUnitName(*leaderInfo, rand, false));
-    mapGenerator->insertObject(std::move(leader));
-
-    // Create starting stack
-    auto stackId{mapGenerator->createId(CMidgardID::Type::Stack)};
-    auto stack{std::make_unique<Stack>(stackId)};
-    auto leaderAdded{stack->addLeader(leaderId, 2, leaderInfo->isBig())};
-    assert(leaderAdded);
-    stack->setInside(capitalId);
-    stack->setMove(leaderInfo->getMove());
-    stack->setOwner(ownerId);
-    stack->setOrder(OrderType::Normal);
-
-    fort->setStack(stackId);
-
     auto subraceType{mapGenerator->map->getSubRaceType(playerRace)};
-
     CMidgardID subraceId;
     mapGenerator->map->visit(CMidgardID::Type::SubRace,
                              [this, subraceType, &subraceId](const ScenarioObject* object) {
@@ -3224,7 +3200,6 @@ void TemplateZone::placeCapital()
                              });
 
     fort->setSubrace(subraceId);
-    stack->setSubrace(subraceId);
 
     // Add capital decoration
     decorations.push_back(std::make_unique<CapitalDecoration>(capitalCity.get()));
@@ -3238,7 +3213,33 @@ void TemplateZone::placeCapital()
 
     mapGenerator->registerZone(playerRace);
 
-    placeObject(std::move(stack), fort->getPosition());
+    if (capital.startingStack) {
+        const auto* leaderInfo{unitsInfo.find(raceInfo.getLeaderIds()[0])->second.get()};
+        assert(leaderInfo);
+
+        // Create starting leader unit
+        auto leaderId{mapGenerator->createId(CMidgardID::Type::Unit)};
+        auto leader{std::make_unique<Unit>(leaderId)};
+        leader->setImplId(leaderInfo->getUnitId());
+        leader->setHp(leaderInfo->getHp());
+        leader->setName(getUnitName(*leaderInfo, rand, false));
+        mapGenerator->insertObject(std::move(leader));
+
+        // Create starting stack
+        auto stackId{mapGenerator->createId(CMidgardID::Type::Stack)};
+        auto stack{std::make_unique<Stack>(stackId)};
+        auto leaderAdded{stack->addLeader(leaderId, 2, leaderInfo->isBig())};
+        assert(leaderAdded);
+        stack->setInside(capitalId);
+        stack->setMove(leaderInfo->getMove());
+        stack->setOwner(ownerId);
+        stack->setOrder(OrderType::Normal);
+
+        fort->setStack(stackId);
+        stack->setSubrace(subraceId);
+
+        placeObject(std::move(stack), fort->getPosition());
+    }
 
     // If there are known spells specified for player, add them
     KnownSpells* knownSpells{mapGenerator->map->find<KnownSpells>(ownerPlayer->getSpellsId())};

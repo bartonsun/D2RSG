@@ -142,6 +142,8 @@ struct CapitalInfo
     int gapMask{0};
     // Generate capital guardian
     bool guardian{true};
+    // Generate start stack in capital
+    bool startingStack{true};
 };
 
 struct RuinInfo
