@@ -170,10 +170,6 @@ void TemplateZone::clearEntrance(const Fortification& fort)
 
 void TemplateZone::initTowns()
 {
-    if (type == TemplateZoneType::Water) {
-        return;
-    }
-
     // Create first neutral city or player capital at the center of the zone.
     // Rest of neutral cities will be created later
     if (type == TemplateZoneType::PlayerStart || type == TemplateZoneType::AiStart) {
@@ -2038,6 +2034,10 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
     placeObject(std::move(village), position);
     clearEntrance(*villagePtr);
 
+    if (type == TemplateZoneType::Water) {
+        cityPositions.push_back(position);
+    }
+
     // Create garrison and loot
     const auto& garrisonValue{cityInfo.garrison.value};
     if (garrisonValue) {
@@ -3292,6 +3292,12 @@ void TemplateZone::placeCities()
             }
         }
     }
+
+    if (type == TemplateZoneType::Water) {
+        for (const auto& pos : cityPositions) {
+            createLandPatch(pos, {4, 4});
+        }
+    }
 }
 
 void TemplateZone::placeMerchants()
@@ -4251,6 +4257,56 @@ bool TemplateZone::createRoad(const Position& source, const Position& destinatio
     }
 
     return false;
+}
+
+void TemplateZone::createLandPatch(const Position& pos,
+                                   const Position& size,
+                                   int extraChance,
+                                   int maxExtraCells)
+{
+    auto& map = *mapGenerator->map;
+    auto& mg = *mapGenerator;
+    auto& rand = mapGenerator->randomGenerator;
+
+    // 1. Object tiles
+    for (int dx = 0; dx < size.x; ++dx) {
+        for (int dy = 0; dy < size.y; ++dy) {
+            Position p = pos + Position{dx, dy};
+            if (map.isInTheMap(p) && mg.getZoneId(p) == id) {
+                Tile& tile = map.getTile(p);
+                tile.setTerrainGround(TerrainType::Neutral, GroundType::Plain);
+                mg.setOccupied(p, TileType::Free);
+                addMaskedTile(p);
+            }
+        }
+    }
+
+    // 2. Add random tiles
+    std::vector<Position> candidates;
+    for (int dx = -1; dx <= size.x; ++dx) {
+        for (int dy = -1; dy <= size.y; ++dy) {
+            // Skip object tiles
+            if (dx >= 0 && dx < size.x && dy >= 0 && dy < size.y)
+                continue;
+            Position p = pos + Position{dx, dy};
+            if (map.isInTheMap(p) && mg.getZoneId(p) == id)
+                candidates.push_back(p);
+        }
+    }
+
+    randomShuffle(candidates, rand);
+    int added = 0;
+    for (const auto& p : candidates) {
+        if (maxExtraCells >= 0 && added >= maxExtraCells)
+            break;
+        if (rand.chance(extraChance)) {
+            Tile& tile = map.getTile(p);
+            tile.setTerrainGround(TerrainType::Neutral, GroundType::Plain);
+            mg.setOccupied(p, TileType::Free);
+            addMaskedTile(p);
+            ++added;
+        }
+    }
 }
 
 } // namespace rsg

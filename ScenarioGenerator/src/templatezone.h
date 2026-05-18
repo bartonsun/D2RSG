@@ -125,6 +125,16 @@ struct TemplateZone : public ZoneOptions
         ownerId = id;
     }
 
+    void setLabel(char value)
+    {
+        label = value;
+    }
+
+    char getLabel()
+    {
+        return label;
+    }
+
     void clearEntrance(const Fortification& fort);
 
     void initTowns();
@@ -304,6 +314,11 @@ struct TemplateZone : public ZoneOptions
 
     bool isMaskedTile(const Position& position);
 
+    void createLandPatch(const Position& pos,
+                         const Position& size,
+                         int extraChance = 60,
+                         int maxExtraCells = -1);
+
 private:
     bool createRoad(const Position& source, const Position& destination);
 
@@ -336,6 +351,7 @@ private:
     std::set<Position> roadNodes;     // Tiles to be connected with roads
     std::set<Position> borderTiles;   // Zone border tiles
     std::set<Position> maskedTiles;   // Tiles around objects without decorations
+    std::vector<Position> cityPositions; // Initials towns positions
 
     std::vector<RoadInfo> roads; // All tiles with roads
     CMidgardID ownerId{emptyId}; // Player assigned to zone

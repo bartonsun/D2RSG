@@ -794,6 +794,18 @@ static std::shared_ptr<ZoneOptions> createZoneOptions(const sol::table& zone)
 
     options->fillType = zone.get_or("fill", TemplateZoneFillType::None);
     options->size = readValue(zone, "size", 1, 1);
+    sol::object labelObj = zone.get<sol::object>("label");
+    if (labelObj.get_type() == sol::type::number) {
+        int num = labelObj.as<int>();
+        if (num >= 0 && num <= 9) {
+            options->label = '0' + num;
+        }
+    } else if (labelObj.get_type() == sol::type::string) {
+        std::string str = labelObj.as<std::string>();
+        if (!str.empty()) {
+            options->label = str[0];
+        }
+    }
     options->borderType = zone.get_or("border", ZoneBorderType::Closed);
     if (options->borderType == ZoneBorderType::SemiOpen) {
         options->gapChance = readValue(zone, "gapChance", 50, 0, 100);

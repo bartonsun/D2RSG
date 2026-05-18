@@ -307,6 +307,7 @@ struct ZoneOptions
     ZoneBorderType borderType{ZoneBorderType::Closed};
     int gapChance{50}; // Chance border tile will become gap in case of SemiOpen borders
     int size{1};       // Zone size
+    char label{};
 };
 
 } // namespace rsg
