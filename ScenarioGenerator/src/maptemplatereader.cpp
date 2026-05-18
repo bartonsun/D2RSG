@@ -846,9 +846,24 @@ static std::shared_ptr<ZoneOptions> createZoneOptions(const sol::table& zone)
         readStacks(options->stacks, stacks.value());
     }
 
-    auto bags = zone.get<OptionalTable>("bags");
-    if (bags.has_value()) {
-        readBags(options->bags, bags.value());
+    sol::object bagsObj = zone.get<sol::object>("bags");
+    if (bagsObj.is<sol::table>()) {
+        sol::table bagsTable = bagsObj.as<sol::table>();
+        // Tables array. New format
+        sol::object firstElem = bagsTable[1];
+        if (firstElem.is<sol::table>()) {
+            auto bagsTables = bagsTable.as<std::vector<sol::table>>();
+            for (const auto& bagTable : bagsTables) {
+                BagInfo bagInfo;
+                readBags(bagInfo, bagTable);
+                options->bagGroups.push_back(bagInfo);
+            }
+        } else {
+            // Single table. Old format
+            BagInfo bagInfo;
+            readBags(bagInfo, bagsTable);
+            options->bagGroups.push_back(bagInfo);
+        }
     }
 
     auto trainers = zone.get<OptionalTableArray>("trainers");

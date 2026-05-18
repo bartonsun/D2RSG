@@ -297,8 +297,8 @@ struct ZoneOptions
     std::vector<MercenaryInfo> mercenaries;     // Mercenary camps
     std::vector<TrainerInfo> trainers;          // Trainers
     std::vector<ResourceMarketInfo> markets;    // Resource markets
+    std::vector<BagInfo> bagGroups;             // Bags with treasures
     StacksInfo stacks;                          // Neutral stacks
-    BagInfo bags;                               // Bags with treasures
     CapitalInfo capital;                        // Capital, in case of starting zone
     TemplateZoneId id{0};
     TemplateZoneType type{TemplateZoneType::PlayerStart};

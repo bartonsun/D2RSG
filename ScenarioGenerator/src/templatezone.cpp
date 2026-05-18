@@ -3666,87 +3666,89 @@ void TemplateZone::placeStacks()
 
 void TemplateZone::placeBags()
 {
-    if (!bags.count) {
-        return;
-    }
-
-    // Compute single bag value
-    const auto& bagsLoot = bags.loot;
-    LootInfo bagLoot;
-    bagLoot.value = bagsLoot.value / bags.count;
-    bagLoot.itemTypes = bagsLoot.itemTypes;
-    bagLoot.itemValue = bagsLoot.itemValue;
-
-    std::vector<std::vector<CMidgardID>> items(bags.count);
-    // Generate loot for each bag
-    for (std::uint32_t i = 0; i < bags.count; ++i) {
-        const auto loot{createLoot(bagLoot)};
-
-        for (const auto& [id, amount] : loot) {
-            items[i].insert(items[i].end(), amount, id);
+    for (auto& bagInfo : bagGroups) {
+        if (!bagInfo.count) {
+            continue;
         }
-    }
 
-    // Generate required items
-    LootInfo requiredLootInfo;
-    requiredLootInfo.requiredItems = bagsLoot.requiredItems;
-    const auto requiredLoot{createLoot(requiredLootInfo)};
+        // Compute single bag value
+        const auto& bagsLoot = bagInfo.loot;
+        LootInfo bagLoot;
+        bagLoot.value = bagsLoot.value / bagInfo.count;
+        bagLoot.itemTypes = bagsLoot.itemTypes;
+        bagLoot.itemValue = bagsLoot.itemValue;
 
-    std::vector<CMidgardID> requiredItems;
-    for (const auto& [id, amount] : requiredLoot) {
-        requiredItems.insert(requiredItems.end(), amount, id);
-    }
+        std::vector<std::vector<CMidgardID>> items(bagInfo.count);
+        // Generate loot for each bag
+        for (std::uint32_t i = 0; i < bagInfo.count; ++i) {
+            const auto loot{createLoot(bagLoot)};
 
-    auto& rand{mapGenerator->randomGenerator};
-
-    // Place required items in the bags randomly
-    for (const auto& id : requiredItems) {
-        const std::size_t bagIndex = rand.nextInteger(std::size_t{0}, items.size() - 1);
-
-        items[bagIndex].push_back(id);
-    }
-
-    // Place bags
-    std::vector<Bag*> placedBags;
-    for (std::uint32_t i = 0; i < bags.count; ++i) {
-        MapElement mapElement{Position{1, 1}};
-        Position position;
-
-        const int minDistance{mapElement.getSize().x * 2};
-        while (true) {
-            if (!findPlaceForObject(mapElement, minDistance, position)) {
-                throw LackOfSpaceException(std::string("Failed to place bags in zone ")
-                                           + std::to_string(id) + " due to lack of space");
+            for (const auto& [id, amount] : loot) {
+                items[i].insert(items[i].end(), amount, id);
             }
+        }
 
-            if (tryToPlaceObjectAndConnectToPath(mapElement, position)
-                == ObjectPlacingResult::Success) {
-                if (mapGenerator->isDebugMode()) {
-                    std::cout << "Create bag at " << position << '\n';
+        // Generate required items
+        LootInfo requiredLootInfo;
+        requiredLootInfo.requiredItems = bagsLoot.requiredItems;
+        const auto requiredLoot{createLoot(requiredLootInfo)};
+
+        std::vector<CMidgardID> requiredItems;
+        for (const auto& [id, amount] : requiredLoot) {
+            requiredItems.insert(requiredItems.end(), amount, id);
+        }
+
+        auto& rand{mapGenerator->randomGenerator};
+
+        // Place required items in the bags randomly
+        for (const auto& id : requiredItems) {
+            const std::size_t bagIndex = rand.nextInteger(std::size_t{0}, items.size() - 1);
+
+            items[bagIndex].push_back(id);
+        }
+
+        // Place bags
+        std::vector<Bag*> placedBags;
+        for (std::uint32_t i = 0; i < bagInfo.count; ++i) {
+            MapElement mapElement{Position{1, 1}};
+            Position position;
+
+            const int minDistance{mapElement.getSize().x * 2};
+            while (true) {
+                if (!findPlaceForObject(mapElement, minDistance, position)) {
+                    throw LackOfSpaceException(std::string("Failed to place bags in zone ")
+                                               + std::to_string(id) + " due to lack of space");
                 }
 
-                // Do not create decorations near bags
-                auto bag{placeBag(position)};
-                bag->setAiPriority(bags.aiPriority);
+                if (tryToPlaceObjectAndConnectToPath(mapElement, position)
+                    == ObjectPlacingResult::Success) {
+                    if (mapGenerator->isDebugMode()) {
+                        std::cout << "Create bag at " << position << '\n';
+                    }
 
-                placedBags.push_back(std::move(bag));
-                break;
+                    // Do not create decorations near bags
+                    auto bag{placeBag(position)};
+                    bag->setAiPriority(bagInfo.aiPriority);
+
+                    placedBags.push_back(std::move(bag));
+                    break;
+                }
             }
         }
-    }
 
-    // Fill bags with actual items.
-    // It is the template author's job to think about bags.count and item values distribution.
-    // Generator won't care about dumb combinations that lead to empty bags.
-    for (std::size_t i = 0; i < items.size() && i < placedBags.size(); ++i) {
-        const auto& bagItems = items[i];
-        for (const auto& bagItemId : bagItems) {
-            auto itemId{mapGenerator->createId(CMidgardID::Type::Item)};
-            auto item{std::make_unique<Item>(itemId)};
-            item->setItemType(bagItemId);
+        // Fill bags with actual items.
+        // It is the template author's job to think about bags.count and item values distribution.
+        // Generator won't care about dumb combinations that lead to empty bags.
+        for (std::size_t i = 0; i < items.size() && i < placedBags.size(); ++i) {
+            const auto& bagItems = items[i];
+            for (const auto& bagItemId : bagItems) {
+                auto itemId{mapGenerator->createId(CMidgardID::Type::Item)};
+                auto item{std::make_unique<Item>(itemId)};
+                item->setItemType(bagItemId);
 
-            mapGenerator->insertObject(std::move(item));
-            placedBags[i]->add(itemId);
+                mapGenerator->insertObject(std::move(item));
+                placedBags[i]->add(itemId);
+            }
         }
     }
 }
