@@ -20,6 +20,7 @@
 #pragma once
 
 #include "aipriority.h"
+#include "currency.h"
 #include "enums.h"
 #include "randomgenerator.h"
 #include "rsgid.h"
@@ -131,6 +132,8 @@ struct CapitalInfo
 {
     // Capital garrison defenders and items
     GroupInfo garrison;
+    // Bonus gold and mana for player
+    Currency bonusResources;
     // Spells the player knowns from the start
     std::set<CMidgardID> spells;
     // Buildings that must be present in capital

@@ -449,6 +449,19 @@ static void readCapital(CapitalInfo& capital, const sol::table& table)
         readGroup(capital.garrison, garrison.value());
     }
 
+    sol::object bonusObj = table.get<sol::object>("bonusResources");
+    if (bonusObj.is<sol::table>()) {
+        sol::table bonusTable = bonusObj.as<sol::table>();
+        int16_t gold = bonusTable.get_or("gold", 0);
+        int16_t lifeMana = bonusTable.get_or("lifeMana", 0);
+        int16_t deathMana = bonusTable.get_or("deathMana", 0);
+        int16_t infernalMana = bonusTable.get_or("infernalMana", 0);
+        int16_t runicMana = bonusTable.get_or("runicMana", 0);
+        int16_t groveMana = bonusTable.get_or("groveMana", 0);
+        capital.bonusResources = Currency(gold, lifeMana, deathMana, infernalMana, runicMana,
+                                          groveMana);
+    }
+
     auto spells = table.get<sol::optional<std::set<std::string>>>("spells");
     if (spells.has_value()) {
         for (const auto& spell : spells.value()) {

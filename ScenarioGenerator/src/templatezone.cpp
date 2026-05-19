@@ -3257,6 +3257,24 @@ void TemplateZone::placeCapital()
     for (const auto& buildId : capital.buildings) {
         playerBuildings->add(buildId);
     }
+
+    // 
+    Currency& bank = ownerPlayer->getBank();
+    const Currency& bonus = capital.bonusResources; // или this->capital.bonusResources
+
+    auto addBonus = [&](ResourceType res, int16_t value) {
+        if (value != 0) {
+            int16_t current = bank.get(res);
+            bank.set(res, static_cast<uint16_t>(std::clamp(current + value, 0, 9999)));
+        }
+    };
+
+    addBonus(ResourceType::Gold, bonus.get(ResourceType::Gold));
+    addBonus(ResourceType::LifeMana, bonus.get(ResourceType::LifeMana));
+    addBonus(ResourceType::DeathMana, bonus.get(ResourceType::DeathMana));
+    addBonus(ResourceType::InfernalMana, bonus.get(ResourceType::InfernalMana));
+    addBonus(ResourceType::RunicMana, bonus.get(ResourceType::RunicMana));
+    addBonus(ResourceType::GroveMana, bonus.get(ResourceType::GroveMana));
 }
 
 void TemplateZone::placeCities()
