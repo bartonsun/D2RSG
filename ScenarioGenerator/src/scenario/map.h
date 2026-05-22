@@ -187,6 +187,15 @@ public:
         neutralSubraceIds[type] = id;
     }
 
+    void setPreviewImage(const std::vector<uint8_t>& pngData)
+    {
+        previewImage = pngData;
+    }
+    const std::vector<uint8_t>& getPreviewImage() const
+    {
+        return previewImage;
+    }
+
 private:
     std::size_t posToIndex(const Position& position) const
     {
@@ -207,6 +216,7 @@ private:
     Mountains* mountains{};
     TalismanCharges* talismanCharges{};
     std::map<SubRaceType, CMidgardID> neutralSubraceIds;
+    std::vector<uint8_t> previewImage;
 };
 
 using MapPtr = std::unique_ptr<Map>;

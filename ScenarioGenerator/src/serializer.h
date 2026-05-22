@@ -59,6 +59,8 @@ public:
     void serialize(const char* name, const Currency& currency);
     void serialize(const char* name, const void* buffer, std::size_t byteCount);
 
+    void serializeBase64(const char* name, const uint8_t* data, size_t size);
+
 private:
     void serializeName(const char* name);
     void serializeString(const char* value, std::size_t bytesToWrite);

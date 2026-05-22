@@ -252,4 +252,32 @@ void Serializer::serializeString(const char* value, std::size_t bytesToWrite)
     stream.write(padding.data(), padding.size());
 }
 
+static const char
+    base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+static std::string base64_encode(const uint8_t* data, size_t len)
+{
+    std::string out;
+    int val = 0, valb = -6;
+    for (size_t i = 0; i < len; ++i) {
+        val = (val << 8) + data[i];
+        valb += 8;
+        while (valb >= 0) {
+            out.push_back(base64_chars[(val >> valb) & 0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6)
+        out.push_back(base64_chars[((val << 8) >> (valb + 8)) & 0x3F]);
+    while (out.size() % 4)
+        out.push_back('=');
+    return out;
+}
+
+void Serializer::serializeBase64(const char* name, const uint8_t* data, size_t size)
+{
+    std::string encoded = base64_encode(data, size);
+    serialize(name, encoded.c_str());
+}
+
 } // namespace rsg
