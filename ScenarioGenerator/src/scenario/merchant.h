@@ -41,10 +41,13 @@ public:
 
     void addItem(const CMidgardID& itemId, std::uint32_t count = 1);
 
+    void sortItemsByType();
+
 private:
     void serializeSite(Serializer& serializer, const Map& scenario) const override;
 
     std::unordered_map<CMidgardID, std::uint32_t /* count */, CMidgardIDHash> items;
+    std::vector<std::pair<CMidgardID, uint32_t>> sortedItems;
 };
 
 } // namespace rsg
