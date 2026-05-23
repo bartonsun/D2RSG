@@ -2174,7 +2174,7 @@ Site* TemplateZone::placeMerchant(const Position& position, const MerchantInfo& 
         merchant->addItem(id, amount);
     }
 
-
+    merchant->sortItemsByType();
 
     auto merchantPtr{merchant.get()};
     placeObject(std::move(merchant), position);
