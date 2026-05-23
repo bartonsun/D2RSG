@@ -806,7 +806,11 @@ static std::shared_ptr<ZoneOptions> createZoneOptions(const sol::table& zone)
         }
     }
 
-    options->fillType = zone.get_or("fill", TemplateZoneFillType::None);
+    TemplateZoneFillType defaultFill = (options->type == TemplateZoneType::Junction)
+                                           ? TemplateZoneFillType::Mountain
+                                           : TemplateZoneFillType::None;
+    options->fillType = zone.get_or("fill", defaultFill);
+
     options->size = readValue(zone, "size", 1, 1);
     sol::object labelObj = zone.get<sol::object>("label");
     if (labelObj.get_type() == sol::type::number) {
