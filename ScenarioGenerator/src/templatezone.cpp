@@ -1435,9 +1435,12 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
     const bool isNeutralLeader = neutralOwner && (leaderInfo->getUnitType() == UnitType::Leader);
     int maxSoldiers = 0;
 
+    bool canPickSoldier = (strength - leaderInfo->getValue())
+                          >= (getGameInfo()->getMinSoldierValue());
+
     if (isNeutralLeader) {
         maxSoldiers = 5;
-    } else {
+    } else if (canPickSoldier) {
         int baseLeadership = leaderInfo->isBig() ? 2 : 1;
         int modifiersLeadership = 0;
         if (!stackInfo.leaderModifiers.empty()) {
@@ -1456,7 +1459,7 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
     int soldiersToCreate = std::min(maxSoldiers,
                                     static_cast<int>(unitValues.size() - valuesConsumed));
 
-    if (soldiersToCreate > 0 && valuesConsumed < unitValues.size()) {
+    if (soldiersToCreate > 0 && canPickSoldier) {
         std::vector<std::size_t> soldierValues(unitValues.begin() + valuesConsumed,
                                                unitValues.begin() + valuesConsumed
                                                    + soldiersToCreate);
@@ -2171,7 +2174,7 @@ Site* TemplateZone::placeMerchant(const Position& position, const MerchantInfo& 
         merchant->addItem(id, amount);
     }
 
-    merchant->sortItemsByType();
+
 
     auto merchantPtr{merchant.get()};
     placeObject(std::move(merchant), position);
