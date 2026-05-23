@@ -37,6 +37,7 @@
 #include "turnsummary.h"
 #include <cassert>
 #include <sstream>
+#include <iostream>
 
 namespace rsg {
 
@@ -128,6 +129,18 @@ void Map::serialize(const std::filesystem::path& scenarioFilePath)
 
         serializer.beginObject();
         object->serialize(serializer, *this);
+        serializer.endObject();
+    }
+
+    if (!previewImage.empty()) {
+        serializer.enterRecord();
+        serializer.serialize("WHAT", ".?AVCMapImage");
+        serializer.leaveRecord();
+
+        serializer.beginObject();
+        serializer.enterRecord();
+        serializer.serializeBase64("BASE64", previewImage.data(), previewImage.size());
+        serializer.leaveRecord();
         serializer.endObject();
     }
 }
