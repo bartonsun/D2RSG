@@ -319,6 +319,9 @@ void TemplateZone::createObstacles()
     }
 
     if (fillType != TemplateZoneFillType::None && fillType != TemplateZoneFillType::Mountain) {
+
+        auto& rand = mapGenerator->randomGenerator;
+
         GroundType fillGround;
         switch (fillType) {
         case TemplateZoneFillType::Water:
@@ -333,7 +336,7 @@ void TemplateZone::createObstacles()
         default:
             return;
         }
-        bool blockFill = (fillGround == GroundType::Mountain); // false для Water/Forest/Plain
+        bool blockFill = (fillGround == GroundType::Mountain); // false for Water/Forest/Plain
 
         for (auto& tile : tileInfo) {
             if (maskedTiles.count(tile))
@@ -341,6 +344,9 @@ void TemplateZone::createObstacles()
             if (mapGenerator->shouldBeBlocked(tile) && !isBorderTile(tile)) {
                 auto& mapTile = mapGenerator->map->getTile(tile);
                 mapTile.setTerrainGround(TerrainType::Neutral, fillGround);
+                if (fillGround == GroundType::Forest) {
+                    mapTile.treeImage = getRandomTreeImageIndex(rand);
+                }
                 mapGenerator->setOccupied(tile, blockFill ? TileType::Blocked : TileType::Free);
             }
         }
