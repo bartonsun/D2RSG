@@ -363,7 +363,7 @@ private:
     std::set<Position> roadNodes;     // Tiles to be connected with roads
     std::set<Position> borderTiles;   // Zone border tiles
     std::set<Position> maskedTiles;   // Tiles around objects without decorations
-    std::vector<Position> cityPositions; // Initials towns positions
+    std::vector<Position> cityPositions; // Water towns positions
 
     std::vector<RoadInfo> roads; // All tiles with roads
     CMidgardID ownerId{emptyId}; // Player assigned to zone
