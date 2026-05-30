@@ -258,6 +258,9 @@
     <ClInclude Include="src\scenario\resourcemarket.h">
       <Filter>Файлы заголовков\scenario</Filter>
     </ClInclude>
+    <ClInclude Include="src\scenario\location.h">
+      <Filter>Файлы заголовков\scenario</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\scenario\bag.cpp">
@@ -426,6 +429,9 @@
       <Filter>Исходные файлы</Filter>
     </ClCompile>
     <ClCompile Include="src\scenario\resourcemarket.cpp">
+      <Filter>Исходные файлы\scenario</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scenario\location.cpp">
       <Filter>Исходные файлы\scenario</Filter>
     </ClCompile>
   </ItemGroup>

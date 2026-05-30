@@ -251,10 +251,15 @@ bool MapGenerator::fillZones()
     for (auto& it : zones) {
         it.second->connectRoads();
     }
+
     for (auto& it : zones) {
         if (it.second->fillType != TemplateZoneFillType::None) {
             it.second->applyFill();
         }
+    }
+
+    for (auto& it : zones) {
+        it.second->assignOrderTargets();
     }
 
     createRoads();

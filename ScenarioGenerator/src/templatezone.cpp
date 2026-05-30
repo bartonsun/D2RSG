@@ -29,6 +29,7 @@
 #include "knownspells.h"
 #include "playerbuildings.h"
 #include "landmarkpicker.h"
+#include "location.h"
 #include "mage.h"
 #include "mapgenerator.h"
 #include "maptemplate.h"
@@ -290,6 +291,7 @@ void TemplateZone::fill()
     createRequiredObjects();
     placeStacks();
     placeBags();
+    placeLocations();
 
     if (mapGenerator->isDebugMode()) {
         std::cout << "Zone " << id << " filled successfully\n";
@@ -1505,7 +1507,7 @@ std::unique_ptr<Stack> TemplateZone::createStack(const StackInfo& stackInfo, boo
     auto stack{createStack(*leaderInfo, leaderPosition, soldiers, neutralOwner)};
 
     stack->setAiPriority(stackInfo.aiPriority);
-    stack->setOrder(stackInfo.order);
+    stack->setOrder(stackInfo.order.type);
 
     // Make sure we create leader with correct leadership value
     int leadershipRequired = leaderInfo->isBig() ? 2 : 1;
@@ -2043,6 +2045,16 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
     placeObject(std::move(village), position);
     clearEntrance(*villagePtr);
 
+    if (!cityInfo.location.name.empty()) {
+        LocationInfo loc = cityInfo.location;
+        loc.position = villagePtr->getEntrance();
+        locationsInfo.push_back(loc);
+    }
+
+    if (!cityInfo.uid.empty()) {
+        cityIds[cityInfo.uid] = villagePtr->getId();
+    }
+
     if (type == TemplateZoneType::Water) {
         cityPositions.push_back(position);
     }
@@ -2186,6 +2198,12 @@ Site* TemplateZone::placeMerchant(const Position& position, const MerchantInfo& 
     placeObject(std::move(merchant), position);
     guardObject(*merchantPtr, merchantInfo.guard);
 
+    if (!merchantInfo.location.name.empty()) {
+        LocationInfo loc = merchantInfo.location;
+        loc.position = merchantPtr->getEntrance();
+        locationsInfo.push_back(loc);
+    }
+
     return merchantPtr;
 }
 
@@ -2278,11 +2296,17 @@ Site* TemplateZone::placeMage(const Position& position, const MageInfo& mageInfo
         mage->addSpell(spell);
     }
 
-    auto sitePtr{mage.get()};
+    auto magePtr{mage.get()};
     placeObject(std::move(mage), position);
-    guardObject(*sitePtr, mageInfo.guard);
+    guardObject(*magePtr, mageInfo.guard);
 
-    return sitePtr;
+    if (!mageInfo.location.name.empty()) {
+        LocationInfo loc = mageInfo.location;
+        loc.position = magePtr->getEntrance();
+        locationsInfo.push_back(loc);
+    }
+
+    return magePtr;
 }
 
 Site* TemplateZone::placeMercenary(const Position& position, const MercenaryInfo& mercInfo)
@@ -2388,6 +2412,12 @@ Site* TemplateZone::placeMercenary(const Position& position, const MercenaryInfo
     placeObject(std::move(mercenary), position);
     guardObject(*mercPtr, mercInfo.guard);
 
+    if (!mercInfo.location.name.empty()) {
+        LocationInfo loc = mercInfo.location;
+        loc.position = mercPtr->getEntrance();
+        locationsInfo.push_back(loc);
+    }
+
     return mercPtr;
 }
 
@@ -2418,6 +2448,12 @@ Site* TemplateZone::placeTrainer(const Position& position, const TrainerInfo& tr
     auto trainerPtr{trainer.get()};
     placeObject(std::move(trainer), position);
     guardObject(*trainerPtr, trainerInfo.guard);
+
+    if (!trainerInfo.location.name.empty()) {
+        LocationInfo loc = trainerInfo.location;
+        loc.position = trainerPtr->getEntrance();
+        locationsInfo.push_back(loc);
+    }
 
     return trainerPtr;
 }
@@ -2462,6 +2498,12 @@ Site* TemplateZone::placeMarket(const Position& position, const ResourceMarketIn
     auto marketPtr{market.get()};
     placeObject(std::move(market), position);
     guardObject(*marketPtr, marketInfo.guard);
+
+    if (!marketInfo.location.name.empty()) {
+        LocationInfo loc = marketInfo.location;
+        auto entrance = loc.position = marketPtr->getEntrance();
+        locationsInfo.push_back(loc);
+    }
 
     return marketPtr;
 }
@@ -2525,6 +2567,12 @@ Ruin* TemplateZone::placeRuin(const Position& position, const RuinInfo& ruinInfo
     auto ruinPtr{ruin.get()};
     placeObject(std::move(ruin), position);
 
+    if (!ruinInfo.location.name.empty()) {
+        LocationInfo loc = ruinInfo.location;
+        loc.position = ruinPtr->getEntrance();
+        locationsInfo.push_back(loc);
+    }
+
     return ruinPtr;
 }
 
@@ -2561,6 +2609,12 @@ Stack* TemplateZone::placeZoneGuard(const Position& position, const StackInfo& g
 
     Stack* stackPtr{stack.get()};
     placeObject(std::move(stack), position);
+
+    if (!guardInfo.location.name.empty()) {
+        LocationInfo loc = guardInfo.location;
+        loc.position = position;
+        locationsInfo.push_back(loc);
+    }
 
     return stackPtr;
 }
@@ -3222,6 +3276,12 @@ void TemplateZone::placeCapital()
     // All roads lead to tile near capital entrance
     setPosition(fort->getEntrance() + Position(1, 1));
 
+    if (!capital.location.name.empty()) {
+        LocationInfo loc = capital.location;
+        loc.position = fort->getEntrance();
+        locationsInfo.push_back(loc);
+    }
+
     mapGenerator->registerZone(playerRace);
 
     if (capital.startingStack) {
@@ -3271,7 +3331,7 @@ void TemplateZone::placeCapital()
 
     // 
     Currency& bank = ownerPlayer->getBank();
-    const Currency& bonus = capital.bonusResources; // или this->capital.bonusResources
+    const Currency& bonus = capital.bonusResources;
 
     auto addBonus = [&](ResourceType res, int16_t value) {
         if (value != 0) {
@@ -3601,6 +3661,7 @@ void TemplateZone::placeStacks()
         std::size_t stackIndex{};
         // Generate and place all random stacks, value is split evenly
         StackInfo randomStackInfo;
+        randomStackInfo.uid = stackGroup.uid;
         randomStackInfo.groupInfo.value = stackGroup.groupInfo.value / stackGroup.count;
         randomStackInfo.groupInfo.subraceTypes = stackGroup.groupInfo.subraceTypes;
         randomStackInfo.groupInfo.customSubraceUids = stackGroup.groupInfo.customSubraceUids;
@@ -3609,6 +3670,7 @@ void TemplateZone::placeStacks()
         randomStackInfo.leaderModifiers = stackGroup.leaderModifiers;
         randomStackInfo.aiPriority = stackGroup.aiPriority;
         randomStackInfo.order = stackGroup.order;
+        randomStackInfo.location = stackGroup.location;
 
         randomStackInfo.bannerId = stackGroup.bannerId;
         randomStackInfo.tomeId = stackGroup.tomeId;
@@ -3633,8 +3695,22 @@ void TemplateZone::placeStacks()
                     leader->setName(stackGroup.name);
                 }
             }
-
             randomStacks[stackIndex] = stack.get();
+
+            if (!randomStackInfo.location.name.empty() && stackIndex == 0) {
+                LocationInfo loc = randomStackInfo.location;
+                loc.position = positions[positionIndex];
+                locationsInfo.push_back(loc);
+            }
+
+            if (!stackGroup.uid.empty() && stackIndex == 0) {
+                stackIds[stackGroup.uid] = randomStacks[0]->getId();
+            }
+
+            if (!stackGroup.uid.empty() && !stackGroup.order.targetUid.empty()) {
+                stackTargets[stackGroup.uid] = stackGroup.order;
+            }
+
             placeObject(std::move(stack), positions[positionIndex++]);
         }
 
@@ -3761,6 +3837,12 @@ void TemplateZone::placeBags()
                     bag->setAiPriority(bagInfo.aiPriority);
 
                     placedBags.push_back(std::move(bag));
+
+                    if (!bagInfo.location.name.empty()) {
+                        LocationInfo loc = bagInfo.location;
+                        loc.position = position;
+                        locationsInfo.push_back(loc);
+                    }
                     break;
                 }
             }
@@ -3781,6 +3863,14 @@ void TemplateZone::placeBags()
             }
         }
     }
+}
+
+void TemplateZone::placeLocations()
+{
+    for (auto& locInfo : locationsInfo) {
+        placeLocation(locInfo);
+    }
+    locationsInfo.clear();
 }
 
 bool TemplateZone::createRequiredObjects()
@@ -4338,6 +4428,86 @@ void TemplateZone::createLandPatch(const Position& pos,
             addMaskedTile(p);
             ++added;
         }
+    }
+}
+
+void TemplateZone::placeLocation(const LocationInfo& info)
+{
+    if (info.name.empty()) {
+        return;
+    }
+    if (mapGenerator->isLocationNameUsed(info.name)) {
+        std::cout << "Duplicate location name " << info.name << " skipped" << std::endl;
+        return;
+    }
+    if (!mapGenerator->map->isInTheMap(info.position)) {
+        std::cout << "Location " << info.name << " position " << info.position
+                  << " is out of map bounds, skipped" << std::endl;
+        return;
+    }
+
+    if (!info.position.isValid()) {
+        std::cout << "Location " << info.name << " has invalid position, skipped" << std::endl;
+        return;
+    }
+
+    auto locId = mapGenerator->createId(CMidgardID::Type::Location);
+    auto loc = std::make_unique<Location>(locId);
+    loc->setName(info.name);
+    loc->setPosition(info.position);
+    loc->setSize(info.size);
+
+    CMidgardID savedId = loc->getId();
+    mapGenerator->insertObject(std::move(loc));
+    mapGenerator->registerLocationName(info.name);
+    locationIds[info.name] = savedId;
+}
+
+void TemplateZone::assignOrderTargets()
+{
+    for (auto& [stackUid, orderInfo] : stackTargets) {
+        auto idIt = stackIds.find(stackUid);
+        if (idIt == stackIds.end())
+            continue;
+        auto* stack = dynamic_cast<Stack*>(mapGenerator->map->find(idIt->second));
+        if (!stack)
+            continue;
+        assignOrderTarget(stack, orderInfo);
+    }
+    stackTargets.clear();
+}
+
+void TemplateZone::assignOrderTarget(Stack* stack, const OrderInfo& orderInfo)
+{
+    if (!stack || orderInfo.targetUid.empty())
+        return;
+
+    CMidgardID targetId = emptyId;
+
+    // Search through locations
+    auto locIt = locationIds.find(orderInfo.targetUid);
+    if (locIt != locationIds.end()) {
+        targetId = locIt->second;
+    }
+
+    // Search through cities
+    if (targetId == emptyId) {
+        auto cityIt = cityIds.find(orderInfo.targetUid);
+        if (cityIt != cityIds.end()) {
+            targetId = cityIt->second;
+        }
+    }
+
+    // Search through stacks
+    if (targetId == emptyId) {
+        auto stackIt = stackIds.find(orderInfo.targetUid);
+        if (stackIt != stackIds.end()) {
+            targetId = stackIt->second;
+        }
+    }
+
+    if (targetId != emptyId) {
+        stack->setOrderTargetId(targetId);
     }
 }
 

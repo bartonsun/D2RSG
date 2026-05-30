@@ -39,6 +39,22 @@ struct RequiredItemInfo
     RandomValue<std::uint8_t> amount;
 };
 
+struct LocationInfo
+{
+    // Unique location name
+    std::string name;
+    // Locations size id 0-3 -> 1x1-7x7 square
+    LocationSize size{LocationSize::x3};
+    // Init position
+    Position position{-1, -1};
+};
+
+struct OrderInfo
+{
+    OrderType type{OrderType::Normal};
+    std::string targetUid;
+};
+
 struct LootInfo
 {
     // Types of items that are allowed
@@ -68,6 +84,8 @@ struct GroupInfo
 
 struct StackInfo
 {
+    // Stack UID
+    std::string uid;
     // GroupInfo used to describe value and loot of entire group
     GroupInfo groupInfo;
     // Number of stacks to create
@@ -79,7 +97,7 @@ struct StackInfo
     // Custom subrace uid
     std::string customSubraceUid;
     // Stack order
-    OrderType order{OrderType::Normal};
+    OrderInfo order;
     // Custom leader name
     std::string name;
     // AI-priority
@@ -96,10 +114,14 @@ struct StackInfo
     CMidgardID artifact1Id;
     CMidgardID artifact2Id;
     CMidgardID bootsId;
+    // Location
+    LocationInfo location;
 };
 
 struct CityInfo
 {
+    // City UID
+    std::string uid;
     // City garrison defenders and items
     GroupInfo garrison;
     // Stack that is visiting the city
@@ -126,6 +148,8 @@ struct CityInfo
     CMidgardID protectionId;
     //
     int gapMask{0};
+    // Location
+    LocationInfo location;
 };
 
 struct CapitalInfo
@@ -147,6 +171,8 @@ struct CapitalInfo
     bool guardian{true};
     // Generate start stack in capital
     bool startingStack{true};
+    // Location
+    LocationInfo location;
 };
 
 struct RuinInfo
@@ -161,6 +187,8 @@ struct RuinInfo
     RandomValue<std::uint16_t> gold{};
     // AI-priority
     AiPriority aiPriority;
+    // Location
+    LocationInfo location;
 };
 
 struct MerchantInfo
@@ -174,6 +202,8 @@ struct MerchantInfo
     std::string description;
     // AI-priority
     AiPriority aiPriority;
+    // Location
+    LocationInfo location;
 };
 
 struct MageInfo
@@ -195,6 +225,8 @@ struct MageInfo
     AiPriority aiPriority;
     // List of restricted spell ids for this mage, excluding requiredSpells
     std::set<CMidgardID> forbiddenIds;
+    // Location
+    LocationInfo location;
 };
 
 struct MercenaryUnitInfo
@@ -228,6 +260,8 @@ struct MercenaryInfo
     bool unique{true};
     // Allow duplicate units in random generation (if false, no repeats)
     bool duplicate{true};
+    // Location
+    LocationInfo location;
 };
 
 struct StacksInfo
@@ -242,6 +276,8 @@ struct BagInfo
     std::uint32_t count{};
     // AI-priority
     AiPriority aiPriority;
+    // Location
+    LocationInfo location;
 };
 
 struct TrainerInfo
@@ -252,6 +288,8 @@ struct TrainerInfo
     std::string description;
     // AI-priority
     AiPriority aiPriority;
+    // Location
+    LocationInfo location;
 };
 
 struct ResourceMarketStock
@@ -275,6 +313,8 @@ struct ResourceMarketInfo
     std::string description;
     // AI-priority
     AiPriority aiPriority;
+    // Location
+    LocationInfo location;
 };
 
 // Connection between two zones in template

@@ -157,7 +157,8 @@ protected:
     CMidgardID subraceId;
     CMidgardID stackId;
     AiPriority aiPriority;
-    int gapMask;
+    // Internal use only
+    int gapMask{0};
 };
 
 } // namespace rsg

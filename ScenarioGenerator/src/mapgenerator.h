@@ -178,6 +178,15 @@ public:
 
     const std::set<CMidgardID>* getCustomSubraceUnits(const std::string& uid) const;
 
+    bool isLocationNameUsed(const std::string& name) const
+    {
+        return usedLocationNames.count(name) > 0;
+    }
+    void registerLocationName(const std::string& name)
+    {
+        usedLocationNames.insert(name);
+    }
+
     bool isDebugMode() const
     {
         return debug;
@@ -198,6 +207,7 @@ public:
     std::map<std::string, std::set<CMidgardID>> customSubraceUnits;
     std::map<SubRaceType, CMidgardID> subraceCache;
     std::size_t zonesTotal{}; // Zones with capital town only
+    std::set<std::string> usedLocationNames;
     bool debug{};
 };
 

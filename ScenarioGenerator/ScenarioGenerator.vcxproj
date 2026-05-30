@@ -45,6 +45,7 @@
     <ClInclude Include="src\scenario\item.h" />
     <ClInclude Include="src\scenario\knownspells.h" />
     <ClInclude Include="src\scenario\landmark.h" />
+    <ClInclude Include="src\scenario\location.h" />
     <ClInclude Include="src\scenario\mage.h" />
     <ClInclude Include="src\scenario\map.h" />
     <ClInclude Include="src\scenario\mapblock.h" />
@@ -113,6 +114,7 @@
     <ClCompile Include="src\scenario\item.cpp" />
     <ClCompile Include="src\scenario\knownspells.cpp" />
     <ClCompile Include="src\scenario\landmark.cpp" />
+    <ClCompile Include="src\scenario\location.cpp" />
     <ClCompile Include="src\scenario\mage.cpp" />
     <ClCompile Include="src\scenario\map.cpp" />
     <ClCompile Include="src\scenario\mapblock.cpp" />

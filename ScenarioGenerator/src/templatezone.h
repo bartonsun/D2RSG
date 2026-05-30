@@ -269,6 +269,9 @@ struct TemplateZone : public ZoneOptions
                                         Stack* stack,
                                         const std::vector<ItemType>& allowedTypes);
 
+    void assignOrderTargets();
+    void assignOrderTarget(Stack* stack, const OrderInfo& orderInfo);
+
     void initTerrain();
     void fractalize();
     void applyFill();
@@ -283,6 +286,7 @@ struct TemplateZone : public ZoneOptions
     bool placeMines();
     void placeStacks();
     void placeBags();
+    void placeLocations();
     bool createRequiredObjects();
 
     bool findPlaceForObject(const MapElement& mapElement, int minDistance, Position& position);
@@ -319,6 +323,8 @@ struct TemplateZone : public ZoneOptions
                          int extraChance = 60,
                          int maxExtraCells = -1);
 
+    void placeLocation(const LocationInfo& locInfo);
+
 private:
     bool createRoad(const Position& source, const Position& destination);
 
@@ -341,6 +347,12 @@ private:
 
     std::map<ScenarioObject*, Position> requestedPositions;
     int minGuardedValue{0};
+
+    std::vector<LocationInfo> locationsInfo;
+    std::unordered_map<std::string, OrderInfo> stackTargets;
+    std::unordered_map<std::string, CMidgardID> cityIds;
+    std::unordered_map<std::string, CMidgardID> locationIds;
+    std::unordered_map<std::string, CMidgardID> stackIds;
 
     // Placement info
     Position pos;

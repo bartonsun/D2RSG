@@ -112,6 +112,16 @@ public:
         order = value;
     }
 
+    void setOrderTargetId(const CMidgardID& id)
+    {
+        orderTargetId = id;
+    }
+
+    CMidgardID getOrderTargetId() const
+    {
+        return orderTargetId;
+    }
+
     const Group& getGroup() const
     {
         return group;

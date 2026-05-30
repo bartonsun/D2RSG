@@ -177,9 +177,14 @@ void bindLuaApi(sol::state& lua)
         "MoveToLocation", OrderType::MoveToLocation,
         "DefendLocation", OrderType::DefendLocation,
         "Bezerk", OrderType::Bezerk,
-        "Assist", OrderType::Assist,
-        "Steal", OrderType::Steal,
         "DefendCity", OrderType::DefendCity
+    );
+
+    lua.new_enum("LocSize",
+        "x1", LocationSize::x1,
+        "x3", LocationSize::x3,
+        "x5", LocationSize::x5,
+        "x7", LocationSize::x7
     );
     // clang-format on
 }
@@ -332,6 +337,24 @@ static void readEquipment(StackInfo& info, sol::table table)
     readId(info.bootsId, table, "boots");
 }
 
+static void readLocation(LocationInfo& info, const sol::table& table)
+{
+    info.name = readString(table, "name", "");
+
+    const int min{static_cast<int>(LocationSize::x1)};
+    const int max{static_cast<int>(LocationSize::x7)};
+    const int dflt{static_cast<int>(LocationSize::x3)};
+
+    int size{readValue(table, "size", dflt, min, max)};
+    info.size = static_cast<LocationSize>(size);
+}
+
+static void readOrder(OrderInfo& info, const sol::table& table)
+{
+    info.type = table.get_or("type", OrderType::Stand);
+    info.targetUid = readString(table, "target", "");
+}
+
 static void readGroup(GroupInfo& group, const sol::table& table)
 {
     auto subraceTypes = table.get<sol::optional<sol::table>>("subraceTypes");
@@ -365,6 +388,7 @@ static void readGroup(GroupInfo& group, const sol::table& table)
 static void readStack(StackInfo& info, sol::table table)
 {
     readGroup(info.groupInfo, table);
+    info.uid = readString(table, "uid", "");
     info.owner = table.get_or("owner", RaceType::Neutral);
     sol::object subraceObj = table.get<sol::object>("subrace");
     if (subraceObj.get_type() == sol::type::number) {
@@ -373,7 +397,10 @@ static void readStack(StackInfo& info, sol::table table)
         info.customSubraceUid = subraceObj.as<std::string>();
         info.subrace = SubRaceType::Neutral;
     }
-    info.order = table.get_or("order", OrderType::Stand);
+    auto order = table.get<OptionalTable>("order");
+    if (order.has_value()) {
+        readOrder(info.order, order.value());
+    }
     info.name = readString(table, "name", "");
     auto units = table.get<sol::optional<StringSet>>("leaderIds");
     if (units.has_value()) {
@@ -397,6 +424,11 @@ static void readStack(StackInfo& info, sol::table table)
     }
 
     readAiPriority(info.aiPriority, table);
+
+    auto locTable = table.get<OptionalTable>("location");
+    if (locTable.has_value()) {
+        readLocation(info.location, locTable.value());
+    }
 }
 
 static void readCity(CityInfo& city, const sol::table& table)
@@ -411,6 +443,7 @@ static void readCity(CityInfo& city, const sol::table& table)
         readStack(city.stack, stack.value());
     }
 
+    city.uid = readString(table, "uid", "");
     city.owner = table.get_or("owner", RaceType::Neutral);
     sol::object subraceObj = table.get<sol::object>("subrace");
     if (subraceObj.get_type() == sol::type::number) {
@@ -428,6 +461,11 @@ static void readCity(CityInfo& city, const sol::table& table)
     city.name = readString(table, "name", "");
     city.gapMask = readValue(table, "gapMask", 0, 0, 15);
     readAiPriority(city.aiPriority, table);
+
+    auto locTable = table.get<OptionalTable>("location");
+    if (locTable.has_value()) {
+        readLocation(city.location, locTable.value());
+    }
 }
 
 static void readCities(std::vector<CityInfo>& cities, const std::vector<sol::table>& tables)
@@ -491,6 +529,11 @@ static void readCapital(CapitalInfo& capital, const sol::table& table)
     capital.guardian = readValue(table, "guardian", true);
     capital.startingStack = readValue(table, "startingStack", true);
     readAiPriority(capital.aiPriority, table);
+
+    auto locTable = table.get<OptionalTable>("location");
+    if (locTable.has_value()) {
+        readLocation(capital.location, locTable.value());
+    }
 }
 
 static void readRuin(RuinInfo& ruin, const sol::table& table)
@@ -512,6 +555,11 @@ static void readRuin(RuinInfo& ruin, const sol::table& table)
 
     ruin.name = readString(table, "name", "");
     readAiPriority(ruin.aiPriority, table);
+
+    auto locTable = table.get<OptionalTable>("location");
+    if (locTable.has_value()) {
+        readLocation(ruin.location, locTable.value());
+    }
 }
 
 static void readRuins(std::vector<RuinInfo>& ruins, const std::vector<sol::table>& tables)
@@ -541,6 +589,11 @@ static void readMerchant(MerchantInfo& merchant, const sol::table& table)
     merchant.name = readString(table, "name", "");
     merchant.description = readString(table, "description", "");
     readAiPriority(merchant.aiPriority, table);
+
+    auto locTable = table.get<OptionalTable>("location");
+    if (locTable.has_value()) {
+        readLocation(merchant.location, locTable.value());
+    }
 }
 
 static void readMerchants(std::vector<MerchantInfo>& merchants,
@@ -599,6 +652,11 @@ static void readMage(MageInfo& mage, const sol::table& table)
     auto forbiddenIds = table.get<sol::optional<StringSet>>("forbiddenIds");
     if (forbiddenIds.has_value()) {
         readStringSet(mage.forbiddenIds, forbiddenIds.value());
+    }
+
+    auto locTable = table.get<OptionalTable>("location");
+    if (locTable.has_value()) {
+        readLocation(mage.location, locTable.value());
     }
 }
 
@@ -675,6 +733,11 @@ static void readMercenary(MercenaryInfo& mercenary, const sol::table& table)
 
     mercenary.unique = readValue(table, "unique", true);
     mercenary.duplicate = readValue(table, "duplicate", true);
+
+    auto locTable = table.get<OptionalTable>("location");
+    if (locTable.has_value()) {
+        readLocation(mercenary.location, locTable.value());
+    }
 }
 
 static void readMercenaries(std::vector<MercenaryInfo>& mercenaries,
@@ -730,6 +793,10 @@ static void readResourceMarket(ResourceMarketInfo& market, const sol::table& tab
     market.name = readString(table, "name", "");
     market.description = readString(table, "description", "");
     readAiPriority(market.aiPriority, table);
+    auto locTable = table.get<OptionalTable>("location");
+    if (locTable.has_value()) {
+        readLocation(market.location, locTable.value());
+    }
 }
 
 static void readResourceMarkets(std::vector<ResourceMarketInfo>& markets,
@@ -767,6 +834,10 @@ static void readBags(BagInfo& bagInfo, const sol::table& table)
 
     bagInfo.count = readValue(table, "count", 0, 0);
     readAiPriority(bagInfo.aiPriority, table);
+    auto locTable = table.get<OptionalTable>("location");
+    if (locTable.has_value()) {
+        readLocation(bagInfo.location, locTable.value());
+    }
 }
 
 static void readTrainers(std::vector<TrainerInfo>& trainers, const std::vector<sol::table>& tables)
@@ -784,6 +855,10 @@ static void readTrainers(std::vector<TrainerInfo>& trainers, const std::vector<s
         info.name = readString(table, "name", "");
         info.description = readString(table, "description", "");
         readAiPriority(info.aiPriority, table);
+        auto locTable = table.get<OptionalTable>("location");
+        if (locTable.has_value()) {
+            readLocation(info.location, locTable.value());
+        }
 
         trainers.push_back(info);
     }

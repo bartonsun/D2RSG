@@ -285,4 +285,12 @@ enum class WaterContent
     Islands,
 };
 
+enum class LocationSize
+{
+    x1 = 0, // 1x1
+    x3 = 1, // 3x3
+    x5 = 2, // 5x5
+    x7 = 3, // 7x7
+};
+
 } // namespace rsg
