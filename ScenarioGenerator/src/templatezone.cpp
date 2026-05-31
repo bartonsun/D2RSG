@@ -238,19 +238,16 @@ void TemplateZone::createBorder()
                     break;
 
                 case ZoneBorderType::Closed:
-                    mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Mountain);
                     mapGenerator->setOccupied(tile, TileType::Blocked);
                     ++closedBorders;
                     break;
 
                 case ZoneBorderType::SemiOpen: {
                     const bool gap{mapGenerator->randomGenerator.chance(gapChance)};
+                    mapGenerator->setOccupied(tile, gap ? TileType::Free : TileType::Blocked);
                     if (gap) {
-                        mapGenerator->setOccupied(tile, TileType::Free);
                         ++openBorders;
                     } else {
-                        mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Mountain);
-                        mapGenerator->setOccupied(tile, TileType::Blocked);
                         ++closedBorders;
                     }
 

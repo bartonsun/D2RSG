@@ -415,11 +415,6 @@ bool MapGenerator::createDirectConnections()
                 if (connection.distance > 0 && forbidden.count(guardPos))
                     continue;
 
-                zoneA->connectWithCenter(guardPos, true, true);
-                zoneB->connectWithCenter(guardPos, true, true);
-                zoneA->addRoadNode(guardPos);
-                zoneB->addRoadNode(guardPos);
-                usedConnectionTiles.insert(guardPos);
                 connectionMade = true;
                 break;
             }
