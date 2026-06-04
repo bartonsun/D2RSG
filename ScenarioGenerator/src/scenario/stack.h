@@ -182,6 +182,24 @@ public:
         aiPriority = priority;
     }
 
+    void setUid(const std::string& value)
+    {
+        uid = value;
+    }
+    const std::string& getUid() const
+    {
+        return uid;
+    }
+
+    void setTargetUid(const std::string& value)
+    {
+        targetUid = value;
+    }
+    const std::string& getTargetUid() const
+    {
+        return targetUid;
+    }
+
 private:
     Group group;
     Inventory inventory;
@@ -211,6 +229,9 @@ private:
     bool aiIgnore{};
     bool invisible{};
     bool leaderAlive{true};
+    // Internal use only
+    std::string uid;
+    std::string targetUid;
 };
 
 } // namespace rsg

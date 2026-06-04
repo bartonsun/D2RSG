@@ -985,7 +985,7 @@ void TemplateZone::placeMountain(const Position& position, const Position& size,
     mapGenerator->map->addMountain(position, size, image);
 }
 
-bool TemplateZone::guardObject(const MapElement& mapElement, const StackInfo& guardInfo)
+bool TemplateZone::guardObject(const MapElement& mapElement, const StackInfo& guardInfo, const std::string& objectUid)
 {
     const auto tiles{getAccessibleTiles(mapElement)};
     Position guardTile{-1, -1};
@@ -1030,7 +1030,18 @@ bool TemplateZone::guardObject(const MapElement& mapElement, const StackInfo& gu
         }
     }
 
+    Stack* stackPtr = stack.get();
+
     placeObject(std::move(stack), guardTile);
+
+    std::string guardUid = objectUid + "_GUARD";
+    stackPtr->setUid(guardUid);
+    mapGenerator->stackUids[guardUid] = stackPtr->getId();
+
+    LocationInfo loc;
+    loc.uid = guardUid;
+    loc.position = guardTile;
+    locationsInfo.push_back(loc);
 
     return true;
 }
@@ -2042,15 +2053,14 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
     placeObject(std::move(village), position);
     clearEntrance(*villagePtr);
 
-    if (!cityInfo.location.name.empty()) {
-        LocationInfo loc = cityInfo.location;
-        loc.position = villagePtr->getEntrance();
-        locationsInfo.push_back(loc);
-    }
+    std::string uid = generateUid("CITY");
+    villagePtr->setUid(uid);
+    mapGenerator->cityUids[uid] = villagePtr->getId();
 
-    if (!cityInfo.uid.empty()) {
-        cityIds[cityInfo.uid] = villagePtr->getId();
-    }
+    LocationInfo loc = cityInfo.location;
+    loc.uid = villagePtr->getUid();
+    loc.position = villagePtr->getEntrance();
+    locationsInfo.push_back(loc);
 
     if (type == TemplateZoneType::Water) {
         cityPositions.push_back(position);
@@ -2154,6 +2164,15 @@ Village* TemplateZone::placeCity(const Position& position, const CityInfo& cityI
             }
         }
 
+        std::string stackUid = villagePtr->getUid() + "_STACK";
+        stack->setUid(stackUid);
+        mapGenerator->stackUids[stackUid] = stack->getId();
+
+        LocationInfo loc;
+        loc.uid = stackUid;
+        loc.position = stack->getPosition();
+        locationsInfo.push_back(loc);
+
         placeObject(std::move(stack), position);
     }
 
@@ -2191,15 +2210,16 @@ Site* TemplateZone::placeMerchant(const Position& position, const MerchantInfo& 
 
     merchant->sortItemsByType();
 
+    std::string uid = generateUid("MERCHANT");
+
     auto merchantPtr{merchant.get()};
     placeObject(std::move(merchant), position);
-    guardObject(*merchantPtr, merchantInfo.guard);
+    guardObject(*merchantPtr, merchantInfo.guard, uid);
 
-    if (!merchantInfo.location.name.empty()) {
-        LocationInfo loc = merchantInfo.location;
-        loc.position = merchantPtr->getEntrance();
-        locationsInfo.push_back(loc);
-    }
+    LocationInfo loc;
+    loc.uid = uid;
+    loc.position = merchantPtr->getEntrance();
+    locationsInfo.push_back(loc);
 
     return merchantPtr;
 }
@@ -2293,15 +2313,16 @@ Site* TemplateZone::placeMage(const Position& position, const MageInfo& mageInfo
         mage->addSpell(spell);
     }
 
+    std::string uid = generateUid("MAGE");
+
     auto magePtr{mage.get()};
     placeObject(std::move(mage), position);
-    guardObject(*magePtr, mageInfo.guard);
+    guardObject(*magePtr, mageInfo.guard, uid);
 
-    if (!mageInfo.location.name.empty()) {
-        LocationInfo loc = mageInfo.location;
-        loc.position = magePtr->getEntrance();
-        locationsInfo.push_back(loc);
-    }
+    LocationInfo loc;
+    loc.uid = uid;
+    loc.position = magePtr->getEntrance();
+    locationsInfo.push_back(loc);
 
     return magePtr;
 }
@@ -2405,15 +2426,16 @@ Site* TemplateZone::placeMercenary(const Position& position, const MercenaryInfo
         mercenary->addUnit(unit.unitId, unit.level, unit.unique);
     }
 
+    std::string uid = generateUid("MERCENARY");
+
     auto mercPtr{mercenary.get()};
     placeObject(std::move(mercenary), position);
-    guardObject(*mercPtr, mercInfo.guard);
+    guardObject(*mercPtr, mercInfo.guard, uid);
 
-    if (!mercInfo.location.name.empty()) {
-        LocationInfo loc = mercInfo.location;
-        loc.position = mercPtr->getEntrance();
-        locationsInfo.push_back(loc);
-    }
+    LocationInfo loc;
+    loc.uid = uid;
+    loc.position = mercPtr->getEntrance();
+    locationsInfo.push_back(loc);
 
     return mercPtr;
 }
@@ -2442,15 +2464,16 @@ Site* TemplateZone::placeTrainer(const Position& position, const TrainerInfo& tr
     trainer->setImgIso(*getRandomElement(getGeneratorSettings().trainers.images, rand));
     trainer->setAiPriority(trainerInfo.aiPriority);
 
+    std::string uid = generateUid("TRAINER");
+
     auto trainerPtr{trainer.get()};
     placeObject(std::move(trainer), position);
-    guardObject(*trainerPtr, trainerInfo.guard);
+    guardObject(*trainerPtr, trainerInfo.guard, uid);
 
-    if (!trainerInfo.location.name.empty()) {
-        LocationInfo loc = trainerInfo.location;
-        loc.position = trainerPtr->getEntrance();
-        locationsInfo.push_back(loc);
-    }
+    LocationInfo loc;
+    loc.uid = uid;
+    loc.position = trainerPtr->getEntrance();
+    locationsInfo.push_back(loc);
 
     return trainerPtr;
 }
@@ -2492,15 +2515,16 @@ Site* TemplateZone::placeMarket(const Position& position, const ResourceMarketIn
 
     market->setStock(stock);
 
+    std::string uid = generateUid("MARKET");
+
     auto marketPtr{market.get()};
     placeObject(std::move(market), position);
-    guardObject(*marketPtr, marketInfo.guard);
+    guardObject(*marketPtr, marketInfo.guard, uid);
 
-    if (!marketInfo.location.name.empty()) {
-        LocationInfo loc = marketInfo.location;
-        auto entrance = loc.position = marketPtr->getEntrance();
-        locationsInfo.push_back(loc);
-    }
+    LocationInfo loc;
+    loc.uid = uid;
+    loc.position = marketPtr->getEntrance();
+    locationsInfo.push_back(loc);
 
     return marketPtr;
 }
@@ -2564,16 +2588,18 @@ Ruin* TemplateZone::placeRuin(const Position& position, const RuinInfo& ruinInfo
     auto ruinPtr{ruin.get()};
     placeObject(std::move(ruin), position);
 
-    if (!ruinInfo.location.name.empty()) {
-        LocationInfo loc = ruinInfo.location;
-        loc.position = ruinPtr->getEntrance();
-        locationsInfo.push_back(loc);
-    }
+    std::string uid = generateUid("RUIN");
+    LocationInfo loc;
+    loc.uid = uid;
+    loc.position = ruinPtr->getEntrance();
+    locationsInfo.push_back(loc);
 
     return ruinPtr;
 }
 
-Stack* TemplateZone::placeZoneGuard(const Position& position, const StackInfo& guardInfo)
+Stack* TemplateZone::placeZoneGuard(const Position& position,
+                                    const StackInfo& guardInfo,
+                                    TemplateZoneId connectedZoneId)
 {
     if (!guardInfo.groupInfo.value) {
         // No guard at all
@@ -2607,11 +2633,17 @@ Stack* TemplateZone::placeZoneGuard(const Position& position, const StackInfo& g
     Stack* stackPtr{stack.get()};
     placeObject(std::move(stack), position);
 
-    if (!guardInfo.location.name.empty()) {
-        LocationInfo loc = guardInfo.location;
-        loc.position = position;
-        locationsInfo.push_back(loc);
-    }
+    auto key = std::make_pair(id, connectedZoneId);
+    int counter = ++guardCounters[key];
+    std::string guardUid = "ZONES_" + std::to_string(id) + "_" + std::to_string(connectedZoneId)
+                           + "_GUARD_" + std::to_string(counter);
+    stackPtr->setUid(guardUid);
+    mapGenerator->stackUids[guardUid] = stackPtr->getId();
+
+    LocationInfo loc;
+    loc.uid = guardUid;
+    loc.position = position;
+    locationsInfo.push_back(loc);
 
     return stackPtr;
 }
@@ -3288,11 +3320,14 @@ void TemplateZone::placeCapital()
     // All roads lead to tile near capital entrance
     setPosition(fort->getEntrance() + Position(1, 1));
 
-    if (!capital.location.name.empty()) {
-        LocationInfo loc = capital.location;
-        loc.position = fort->getEntrance();
-        locationsInfo.push_back(loc);
-    }
+    std::string uid = generateUid("CAPITAL");
+    fort->setUid(uid);
+    mapGenerator->cityUids[uid] = fort->getId();
+
+    LocationInfo loc = capital.location;
+    loc.uid = fort->getUid();
+    loc.position = fort->getEntrance();
+    locationsInfo.push_back(loc);
 
     mapGenerator->registerZone(playerRace);
 
@@ -3673,7 +3708,6 @@ void TemplateZone::placeStacks()
         std::size_t stackIndex{};
         // Generate and place all random stacks, value is split evenly
         StackInfo randomStackInfo;
-        randomStackInfo.uid = stackGroup.uid;
         randomStackInfo.groupInfo.value = stackGroup.groupInfo.value / stackGroup.count;
         randomStackInfo.groupInfo.subraceTypes = stackGroup.groupInfo.subraceTypes;
         randomStackInfo.groupInfo.customSubraceUids = stackGroup.groupInfo.customSubraceUids;
@@ -3709,18 +3743,17 @@ void TemplateZone::placeStacks()
             }
             randomStacks[stackIndex] = stack.get();
 
-            if (!randomStackInfo.location.name.empty() && stackIndex == 0) {
-                LocationInfo loc = randomStackInfo.location;
-                loc.position = positions[positionIndex];
-                locationsInfo.push_back(loc);
-            }
+            std::string uid = generateUid("STACK", "", stackGroup.groupIndex, stackIndex + 1);
+            stack->setUid(uid);
+            mapGenerator->stackUids[uid] = stack->getId();
 
-            if (!stackGroup.uid.empty() && stackIndex == 0) {
-                stackIds[stackGroup.uid] = randomStacks[0]->getId();
-            }
+            LocationInfo loc = randomStackInfo.location;
+            loc.uid = stack->getUid();
+            loc.position = positions[positionIndex];
+            locationsInfo.push_back(loc);
 
-            if (!stackGroup.uid.empty() && !stackGroup.order.targetUid.empty()) {
-                stackTargets[stackGroup.uid] = stackGroup.order;
+            if (!stackGroup.order.targetUid.empty()) {
+                stack->setTargetUid(stackGroup.order.targetUid);
             }
 
             placeObject(std::move(stack), positions[positionIndex++]);
@@ -3848,13 +3881,14 @@ void TemplateZone::placeBags()
                     auto bag{placeBag(position)};
                     bag->setAiPriority(bagInfo.aiPriority);
 
+                    std::string uid = generateUid("BAGS", "", bagInfo.groupIndex, i + 1);
+                    LocationInfo loc;
+                    loc.uid = uid;
+                    loc.position = bag->getEntrance();
+                    locationsInfo.push_back(loc);
+
                     placedBags.push_back(std::move(bag));
 
-                    if (!bagInfo.location.name.empty()) {
-                        LocationInfo loc = bagInfo.location;
-                        loc.position = position;
-                        locationsInfo.push_back(loc);
-                    }
                     break;
                 }
             }
@@ -3922,7 +3956,6 @@ bool TemplateZone::createRequiredObjects()
             if (tryToPlaceObjectAndConnectToPath(*mapElement, position)
                 == ObjectPlacingResult::Success) {
                 placeScenarioObject(std::move(object), position);
-                // guardObject(*mapElement, requiredObject.guardStrength);
 
                 if (requiredObject.decoration) {
                     // If object has decoration, remember it
@@ -4020,7 +4053,6 @@ bool TemplateZone::createRequiredObjects()
                 auto result{tryToPlaceObjectAndConnectToPath(*mapElement, position)};
                 if (result == ObjectPlacingResult::Success) {
                     placeScenarioObject(std::move(object), position);
-                    // guardObject(*mapElement, closeObject.guardStrength);
 
                     if (closeObject.decoration) {
                         decorations.push_back(std::move(closeObject.decoration));
@@ -4445,82 +4477,90 @@ void TemplateZone::createLandPatch(const Position& pos,
 
 void TemplateZone::placeLocation(const LocationInfo& info)
 {
-    if (info.name.empty()) {
+    if (info.uid.empty()) {
         return;
     }
-    if (mapGenerator->isLocationNameUsed(info.name)) {
-        std::cout << "Duplicate location name " << info.name << " skipped" << std::endl;
+    if (mapGenerator->isLocationNameUsed(info.uid)) {
+        std::cout << "Duplicate location name " << info.uid << " skipped" << std::endl;
         return;
     }
     if (!mapGenerator->map->isInTheMap(info.position)) {
-        std::cout << "Location " << info.name << " position " << info.position
+        std::cout << "Location " << info.uid << " position " << info.position
                   << " is out of map bounds, skipped" << std::endl;
         return;
     }
-
     if (!info.position.isValid()) {
-        std::cout << "Location " << info.name << " has invalid position, skipped" << std::endl;
+        std::cout << "Location " << info.uid << " has invalid position, skipped" << std::endl;
         return;
     }
 
     auto locId = mapGenerator->createId(CMidgardID::Type::Location);
     auto loc = std::make_unique<Location>(locId);
-    loc->setName(info.name);
+    std::string uid = "LOC_" + info.uid;
+    loc->setUid(uid);
     loc->setPosition(info.position);
     loc->setSize(info.size);
 
     CMidgardID savedId = loc->getId();
     mapGenerator->insertObject(std::move(loc));
-    mapGenerator->registerLocationName(info.name);
-    locationIds[info.name] = savedId;
+    mapGenerator->registerLocationName(uid);
+    mapGenerator->locationUids[uid] = savedId;
 }
 
 void TemplateZone::assignOrderTargets()
 {
-    for (auto& [stackUid, orderInfo] : stackTargets) {
-        auto idIt = stackIds.find(stackUid);
-        if (idIt == stackIds.end())
-            continue;
-        auto* stack = dynamic_cast<Stack*>(mapGenerator->map->find(idIt->second));
+    for (auto& [uid, stackId] : mapGenerator->stackUids) {
+        auto* stack = dynamic_cast<Stack*>(mapGenerator->map->find(stackId));
         if (!stack)
             continue;
-        assignOrderTarget(stack, orderInfo);
+
+        const std::string& targetUid = stack->getTargetUid();
+        if (targetUid.empty())
+            continue;
+
+        CMidgardID targetId = emptyId;
+
+        auto locIt = mapGenerator->locationUids.find(targetUid);
+        if (locIt != mapGenerator->locationUids.end())
+            targetId = locIt->second;
+
+        if (targetId == emptyId) {
+            auto cityIt = mapGenerator->cityUids.find(targetUid);
+            if (cityIt != mapGenerator->cityUids.end())
+                targetId = cityIt->second;
+        }
+
+        if (targetId == emptyId) {
+            auto stackIt = mapGenerator->stackUids.find(targetUid);
+            if (stackIt != mapGenerator->stackUids.end())
+                targetId = stackIt->second;
+        }
+
+        if (targetId != emptyId) {
+            stack->setOrderTargetId(targetId);
+        }
     }
-    stackTargets.clear();
 }
 
-void TemplateZone::assignOrderTarget(Stack* stack, const OrderInfo& orderInfo)
+std::string TemplateZone::generateUid(const std::string& type,
+                                      const std::string& parentUid,
+                                      int groupIndex,
+                                      int itemIndex)
 {
-    if (!stack || orderInfo.targetUid.empty())
-        return;
-
-    CMidgardID targetId = emptyId;
-
-    // Search through locations
-    auto locIt = locationIds.find(orderInfo.targetUid);
-    if (locIt != locationIds.end()) {
-        targetId = locIt->second;
+    std::string uid;
+    if (groupIndex > 0) {
+        // Object with count
+        uid = "ZONE_" + std::to_string(id) + "_" + type + "_" + std::to_string(groupIndex) + "_"
+              + std::to_string(itemIndex);
+    } else {
+        // Simple object
+        int index = ++objectCounters[type];
+        uid = "ZONE_" + std::to_string(id) + "_" + type + "_" + std::to_string(index);
     }
-
-    // Search through cities
-    if (targetId == emptyId) {
-        auto cityIt = cityIds.find(orderInfo.targetUid);
-        if (cityIt != cityIds.end()) {
-            targetId = cityIt->second;
-        }
+    if (!parentUid.empty()) {
+        uid = parentUid + "_" + uid;
     }
-
-    // Search through stacks
-    if (targetId == emptyId) {
-        auto stackIt = stackIds.find(orderInfo.targetUid);
-        if (stackIt != stackIds.end()) {
-            targetId = stackIt->second;
-        }
-    }
-
-    if (targetId != emptyId) {
-        stack->setOrderTargetId(targetId);
-    }
+    return uid;
 }
 
 } // namespace rsg

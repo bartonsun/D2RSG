@@ -460,10 +460,11 @@ bool MapGenerator::createDirectConnections()
 
                 zoneA->connectWithCenter(guardPos, true, true);
                 zoneB->connectWithCenter(guardPos, true, true);
-                const Stack* guard{zoneA->placeZoneGuard(guardPos, connection.guard)};
+                const Stack* guard{zoneA->placeZoneGuard(guardPos, connection.guard, zoneB->id)};
                 zoneB->updateDistances(guardPos);
-                if (!guard)
+                if (!guard) {
                     setOccupied(guardPos, TileType::Free);
+                }
                 zoneA->addRoadNode(guardPos);
                 zoneB->addRoadNode(guardPos);
                 connectionMade = true;
@@ -474,7 +475,7 @@ bool MapGenerator::createDirectConnections()
 
                 zoneA->connectWithCenter(guardPos, true, true);
                 zoneB->connectWithCenter(guardPos, true, true);
-                const Stack* guard{zoneA->placeZoneGuard(guardPos, connection.guard)};
+                const Stack* guard{zoneA->placeZoneGuard(guardPos, connection.guard, zoneB->id)};
                 zoneB->updateDistances(guardPos);
                 if (!guard)
                     setOccupied(guardPos, TileType::Free);

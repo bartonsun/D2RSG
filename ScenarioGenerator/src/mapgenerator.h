@@ -208,6 +208,9 @@ public:
     std::map<SubRaceType, CMidgardID> subraceCache;
     std::size_t zonesTotal{}; // Zones with capital town only
     std::set<std::string> usedLocationNames;
+    std::unordered_map<std::string, CMidgardID> stackUids;
+    std::unordered_map<std::string, CMidgardID> cityUids;
+    std::unordered_map<std::string, CMidgardID> locationUids;
     bool debug{};
 };
 

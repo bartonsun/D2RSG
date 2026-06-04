@@ -31,7 +31,7 @@ void Location::serialize(Serializer& serializer, const Map& scenario) const
 
     serializer.serialize("LOC_ID", idString.data());
     serializer.serialize("POS_X", "POS_Y", position);
-    serializer.serialize("NAME_TXT", name.c_str());
+    serializer.serialize("NAME_TXT", uid.c_str());
     serializer.serialize("RADIUS", static_cast<std::uint32_t>(size));
 
     serializer.leaveRecord();

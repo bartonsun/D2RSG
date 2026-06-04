@@ -339,8 +339,6 @@ static void readEquipment(StackInfo& info, sol::table table)
 
 static void readLocation(LocationInfo& info, const sol::table& table)
 {
-    info.name = readString(table, "name", "");
-
     const int min{static_cast<int>(LocationSize::x1)};
     const int max{static_cast<int>(LocationSize::x7)};
     const int dflt{static_cast<int>(LocationSize::x3)};
@@ -388,7 +386,6 @@ static void readGroup(GroupInfo& group, const sol::table& table)
 static void readStack(StackInfo& info, sol::table table)
 {
     readGroup(info.groupInfo, table);
-    info.uid = readString(table, "uid", "");
     info.owner = table.get_or("owner", RaceType::Neutral);
     sol::object subraceObj = table.get<sol::object>("subrace");
     if (subraceObj.get_type() == sol::type::number) {
@@ -443,7 +440,6 @@ static void readCity(CityInfo& city, const sol::table& table)
         readStack(city.stack, stack.value());
     }
 
-    city.uid = readString(table, "uid", "");
     city.owner = table.get_or("owner", RaceType::Neutral);
     sol::object subraceObj = table.get<sol::object>("subrace");
     if (subraceObj.get_type() == sol::type::number) {
@@ -482,6 +478,12 @@ static void readCities(std::vector<CityInfo>& cities, const std::vector<sol::tab
 
 static void readCapital(CapitalInfo& capital, const sol::table& table)
 {
+    auto stack = table.get<OptionalTable>("stack");
+    if (stack.has_value()) {
+        capital.startingStack = stack.value().get_or("create", true);
+        readStack(capital.stack, stack.value());
+    }
+
     auto garrison = table.get<OptionalTable>("garrison");
     if (garrison.has_value()) {
         readGroup(capital.garrison, garrison.value());
@@ -527,7 +529,7 @@ static void readCapital(CapitalInfo& capital, const sol::table& table)
     capital.name = readString(table, "name", "");
     capital.gapMask = readValue(table, "gapMask", 0, 0, 15);
     capital.guardian = readValue(table, "guardian", true);
-    capital.startingStack = readValue(table, "startingStack", true);
+
     readAiPriority(capital.aiPriority, table);
 
     auto locTable = table.get<OptionalTable>("location");
@@ -823,6 +825,11 @@ static void readStacks(StacksInfo& stacks, const std::vector<sol::table>& tables
 
         stacks.stackGroups.push_back(info);
     }
+
+    int stackGroupIdx = 1;
+    for (auto& stackInfo : stacks.stackGroups) {
+        stackInfo.groupIndex = stackGroupIdx++;
+    }
 }
 
 static void readBags(BagInfo& bagInfo, const sol::table& table)
@@ -956,6 +963,10 @@ static std::shared_ptr<ZoneOptions> createZoneOptions(const sol::table& zone)
             BagInfo bagInfo;
             readBags(bagInfo, bagsTable);
             options->bagGroups.push_back(bagInfo);
+        }
+        int bagGroupIdx = 1;
+        for (auto& bagInfo : options->bagGroups) {
+            bagInfo.groupIndex = bagGroupIdx++;
         }
     }
 

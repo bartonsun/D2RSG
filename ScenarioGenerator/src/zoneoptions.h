@@ -41,8 +41,8 @@ struct RequiredItemInfo
 
 struct LocationInfo
 {
-    // Unique location name
-    std::string name;
+    // Unique location identifier
+    std::string uid;
     // Locations size id 0-3 -> 1x1-7x7 square
     LocationSize size{LocationSize::x3};
     // Init position
@@ -84,8 +84,8 @@ struct GroupInfo
 
 struct StackInfo
 {
-    // Stack UID
-    std::string uid;
+    // Stack index for uid
+    int groupIndex = 0;
     // GroupInfo used to describe value and loot of entire group
     GroupInfo groupInfo;
     // Number of stacks to create
@@ -120,8 +120,6 @@ struct StackInfo
 
 struct CityInfo
 {
-    // City UID
-    std::string uid;
     // City garrison defenders and items
     GroupInfo garrison;
     // Stack that is visiting the city
@@ -156,6 +154,8 @@ struct CapitalInfo
 {
     // Capital garrison defenders and items
     GroupInfo garrison;
+    // Stack that is visiting the capital
+    StackInfo stack;
     // Bonus gold and mana for player
     Currency bonusResources;
     // Spells the player knowns from the start
@@ -272,6 +272,8 @@ struct StacksInfo
 
 struct BagInfo
 {
+    // Bags index for uid
+    int groupIndex = 0;
     LootInfo loot;
     std::uint32_t count{};
     // AI-priority
@@ -353,6 +355,7 @@ struct ZoneOptions
     int gapChance{50}; // Chance border tile will become gap in case of SemiOpen borders
     int size{1};       // Zone size
     char label{};
+    std::map<std::pair<TemplateZoneId, TemplateZoneId>, int> guardCounters;
 };
 
 } // namespace rsg

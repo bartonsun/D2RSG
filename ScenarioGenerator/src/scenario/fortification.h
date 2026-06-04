@@ -143,6 +143,15 @@ public:
         return gapMask;
     }
 
+    void setUid(const std::string& value)
+    {
+        uid = value;
+    }
+    const std::string& getUid() const
+    {
+        return uid;
+    }
+
 protected:
     Fortification(const CMidgardID& fortificationId, const Position& size)
         : ScenarioObject(fortificationId)
@@ -159,6 +168,7 @@ protected:
     AiPriority aiPriority;
     // Internal use only
     int gapMask{0};
+    std::string uid;
 };
 
 } // namespace rsg

@@ -41,14 +41,14 @@ public:
 
     void serialize(Serializer& serializer, const Map& scenario) const override;
 
-    const std::string& getName() const
+    const std::string& getUid() const
     {
-        return name;
+        return uid;
     }
 
-    void setName(const std::string& value)
+    void setUid(const std::string& value)
     {
-        name = value;
+        uid = value;
     }
     void setPosition(const Position& value)
     {
@@ -60,7 +60,7 @@ public:
     }
 
 private:
-    std::string name;
+    std::string uid;
     Position position;
     LocationSize size{LocationSize::x3};
 };

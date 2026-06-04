@@ -183,7 +183,7 @@ struct TemplateZone : public ZoneOptions
 
     void placeMountain(const Position& position, const Position& size, int image);
 
-    bool guardObject(const MapElement& mapElement, const StackInfo& stackInfo);
+    bool guardObject(const MapElement& mapElement, const StackInfo& stackInfo, const std::string& objectUid);
 
     void updateDistances(const Position& position);
 
@@ -257,7 +257,7 @@ struct TemplateZone : public ZoneOptions
     Site* placeTrainer(const Position& position, const TrainerInfo& trainerInfo);
     Site* placeMarket(const Position& position, const ResourceMarketInfo& marketInfo);
     Ruin* placeRuin(const Position& position, const RuinInfo& ruinInfo);
-    Stack* placeZoneGuard(const Position& position, const StackInfo& guardInfo);
+    Stack* placeZoneGuard(const Position& position, const StackInfo& guardInfo, TemplateZoneId connectedZoneId);
     Bag* placeBag(const Position& position);
 
     std::vector<std::pair<CMidgardID, int>> createLoot(const LootInfo& loot,
@@ -268,9 +268,6 @@ struct TemplateZone : public ZoneOptions
     CMidgardID createStackEquipmentItem(const rsg::CMidgardID& itemEquipId,
                                         Stack* stack,
                                         const std::vector<ItemType>& allowedTypes);
-
-    void assignOrderTargets();
-    void assignOrderTarget(Stack* stack, const OrderInfo& orderInfo);
 
     void initTerrain();
     void fractalize();
@@ -287,6 +284,7 @@ struct TemplateZone : public ZoneOptions
     void placeStacks();
     void placeBags();
     void placeLocations();
+    void assignOrderTargets();
     bool createRequiredObjects();
 
     bool findPlaceForObject(const MapElement& mapElement, int minDistance, Position& position);
@@ -325,6 +323,11 @@ struct TemplateZone : public ZoneOptions
 
     void placeLocation(const LocationInfo& locInfo);
 
+    std::string generateUid(const std::string& type,
+                            const std::string& parentUid = "",
+                            int groupIndex = 0,
+                            int itemIndex = 0);
+
 private:
     bool createRoad(const Position& source, const Position& destination);
 
@@ -349,10 +352,6 @@ private:
     int minGuardedValue{0};
 
     std::vector<LocationInfo> locationsInfo;
-    std::unordered_map<std::string, OrderInfo> stackTargets;
-    std::unordered_map<std::string, CMidgardID> cityIds;
-    std::unordered_map<std::string, CMidgardID> locationIds;
-    std::unordered_map<std::string, CMidgardID> stackIds;
 
     // Placement info
     Position pos;
@@ -367,6 +366,9 @@ private:
 
     std::vector<RoadInfo> roads; // All tiles with roads
     CMidgardID ownerId{emptyId}; // Player assigned to zone
+
+    // Counters for uid generation
+    std::map<std::string, int> objectCounters;
 };
 
 } // namespace rsg
