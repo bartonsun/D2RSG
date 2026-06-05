@@ -528,7 +528,20 @@ static void readCapital(CapitalInfo& capital, const sol::table& table)
 
     capital.name = readString(table, "name", "");
     capital.gapMask = readValue(table, "gapMask", 0, 0, 15);
-    capital.guardian = readValue(table, "guardian", true);
+    auto guardianTable = table.get<OptionalTable>("guardian");
+    if (guardianTable.has_value()) {
+        auto gt = guardianTable.value();
+        capital.guardian.create = gt.get_or("create", true);
+        auto modifierIds = gt.get<sol::optional<std::vector<std::string>>>("modifiers");
+        if (modifierIds.has_value()) {
+            for (const auto& idStr : modifierIds.value()) {
+                CMidgardID modifierId(idStr.c_str());
+                if (modifierId != invalidId && modifierId != emptyId) {
+                    capital.guardian.modifierIds.push_back(modifierId);
+                }
+            }
+        }
+    }
 
     readAiPriority(capital.aiPriority, table);
 
@@ -877,6 +890,9 @@ static std::shared_ptr<ZoneOptions> createZoneOptions(const sol::table& zone)
 
     options->id = readValue(zone, "id", -1, 0);
     options->type = zone.get<TemplateZoneType>("type");
+
+    int pathWidth = readValue(zone, "pathWidth", 9, 1, 144);
+    options->pathWidth = static_cast<float>(pathWidth * pathWidth);
 
     if (options->type == TemplateZoneType::PlayerStart
         || options->type == TemplateZoneType::AiStart) {

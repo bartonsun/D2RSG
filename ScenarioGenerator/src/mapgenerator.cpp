@@ -171,6 +171,7 @@ void MapGenerator::generateZones()
 
         auto zone = std::make_shared<TemplateZone>(this);
         zone->setOptions(*options);
+
         zones[zone->id] = zone;
     }
 

@@ -2910,10 +2910,7 @@ void TemplateZone::fractalize()
     std::set<Position> possibleTiles;
     std::set<Position> tilesToIgnore;
 
-    // TODO: move this setting into template for better zone free space control
-    // TODO: adjust this setting based on template value
-    // and number of objects (and their average size?)
-    const float minDistance{7.5 * 10};
+    const float minDistance = this->pathWidth;
 
     for (const auto& tile : tileInfo) {
         if (mapGenerator->isPossible(tile)) {
@@ -3251,15 +3248,41 @@ void TemplateZone::placeCapital()
         // Capital can fit entire group in its garrison.
         std::set<int> positions{0, 1, 2, 3, 4, 5};
         GroupUnits units = {{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}};
-        if (capital.guardian == true) {
-            remainingSlots -= 1;
-            // Slot 2 is reserved for a capital guardian
-            positions.erase(2);
-            units[2] = guardianInfo;
-            if (guardianInfo->isBig()) {
-                units[3] = guardianInfo;
-                positions.erase(3);
+
+        if (capital.guardian.create) {
+            const UnitInfo* guardianInfo{
+                unitsInfo.find(raceInfo.getGuardianUnitId())->second.get()};
+            assert(guardianInfo);
+
+            // Create guardian unit
+            auto guardianUnitId = mapGenerator->createId(CMidgardID::Type::Unit);
+            auto guardianUnit = std::make_unique<Unit>(guardianUnitId);
+            guardianUnit->setImplId(guardianInfo->getUnitId());
+            guardianUnit->setHp(guardianInfo->getHp());
+            guardianUnit->setName(getUnitName(*guardianInfo, rand, false));
+            // Add modifiers
+            for (auto modifierId : capital.guardian.modifierIds) {
+                guardianUnit->addModifier(modifierId);
             }
+            mapGenerator->insertObject(std::move(guardianUnit));
+
+            // Добавляем в группу столицы
+            Group& group = capitalCity->getGroup();
+            bool isBig = guardianInfo->isBig();
+            int slot = 2; // слот по умолчанию
+            group.addUnit(guardianUnitId, slot, isBig);
+            if (isBig) {
+                group.addUnit(guardianUnitId, slot + 1, isBig); // занимает два слота
+            }
+            // Уменьшаем количество доступных слотов для гарнизона
+            remainingSlots -= (isBig ? 2 : 1);
+            positions.erase(slot);
+            if (isBig)
+                positions.erase(slot + 1);
+            // Заполняем units для отладки (нам они не нужны, но createGroup ожидает)
+            units[slot] = guardianInfo;
+            if (isBig)
+                units[slot + 1] = guardianInfo;
         }
 
         const auto& garrisonValue{garrison.value};
@@ -3331,32 +3354,82 @@ void TemplateZone::placeCapital()
 
     mapGenerator->registerZone(playerRace);
 
+    // Starting stack
     if (capital.startingStack) {
-        const auto* leaderInfo{unitsInfo.find(raceInfo.getLeaderIds()[0])->second.get()};
-        assert(leaderInfo);
+        std::unique_ptr<Stack> startingStack;
 
-        // Create starting leader unit
-        auto leaderId{mapGenerator->createId(CMidgardID::Type::Unit)};
-        auto leader{std::make_unique<Unit>(leaderId)};
-        leader->setImplId(leaderInfo->getUnitId());
-        leader->setHp(leaderInfo->getHp());
-        leader->setName(getUnitName(*leaderInfo, rand, false));
-        mapGenerator->insertObject(std::move(leader));
+        if (!capital.stack.leaderIds.empty()) {
+            // Pick leader from list
+            auto info = capital.stack;
+            info.owner = playerRace;
+            info.subrace = mapGenerator->map->getSubRaceType(playerRace);
 
-        // Create starting stack
-        auto stackId{mapGenerator->createId(CMidgardID::Type::Stack)};
-        auto stack{std::make_unique<Stack>(stackId)};
-        auto leaderAdded{stack->addLeader(leaderId, 2, leaderInfo->isBig())};
-        assert(leaderAdded);
-        stack->setInside(capitalId);
-        stack->setMove(leaderInfo->getMove());
-        stack->setOwner(ownerId);
-        stack->setOrder(OrderType::Normal);
+            std::vector<std::size_t> unitValues = {std::numeric_limits<std::size_t>::max()};
+            std::size_t unusedValue = 0, valuesConsumed = 0;
+            const UnitInfo* leaderInfo = pickStackLeader(unusedValue, valuesConsumed, unitValues,
+                                                         info.leaderIds);
 
-        fort->setStack(stackId);
-        stack->setSubrace(subraceId);
+            if (!leaderInfo) {
+                leaderInfo = unitsInfo.find(raceInfo.getLeaderIds()[0])->second.get();
+            }
 
-        placeObject(std::move(stack), fort->getPosition());
+            // Create leader
+            auto leaderId = mapGenerator->createId(CMidgardID::Type::Unit);
+            auto leader = std::make_unique<Unit>(leaderId);
+            leader->setImplId(leaderInfo->getUnitId());
+            leader->setHp(leaderInfo->getHp());
+            leader->setName(getUnitName(*leaderInfo, rand, false));
+            mapGenerator->insertObject(std::move(leader));
+
+            auto stackId = mapGenerator->createId(CMidgardID::Type::Stack);
+            startingStack = std::make_unique<Stack>(stackId);
+            startingStack->addLeader(leaderId, 2, leaderInfo->isBig());
+            startingStack->setMove(leaderInfo->getMove());
+            startingStack->setOrder(OrderType::Normal);
+
+            // Add modifiers
+            for (auto modifierId : info.leaderModifiers) {
+                Unit* leaderUnit = mapGenerator->map->find<Unit>(leaderId);
+                if (leaderUnit)
+                    leaderUnit->addModifier(modifierId);
+            }
+
+            // Add equipment
+            createStackEquipment(info, startingStack.get());
+
+        } else {
+            // Create default leader
+            const auto* leaderInfo{unitsInfo.find(raceInfo.getLeaderIds()[0])->second.get()};
+            assert(leaderInfo);
+
+            auto leaderId{mapGenerator->createId(CMidgardID::Type::Unit)};
+            auto leader{std::make_unique<Unit>(leaderId)};
+            leader->setImplId(leaderInfo->getUnitId());
+            leader->setHp(leaderInfo->getHp());
+            leader->setName(getUnitName(*leaderInfo, rand, false));
+            mapGenerator->insertObject(std::move(leader));
+
+            auto stackId{mapGenerator->createId(CMidgardID::Type::Stack)};
+            startingStack = std::make_unique<Stack>(stackId);
+            startingStack->addLeader(leaderId, 2, leaderInfo->isBig());
+            startingStack->setMove(leaderInfo->getMove());
+            startingStack->setOrder(OrderType::Normal);
+        }
+
+        std::string stackUid = fort->getUid() + "_STACK";
+        startingStack->setUid(stackUid);
+        mapGenerator->stackUids[stackUid] = startingStack->getId();
+
+        LocationInfo stackLoc;
+        stackLoc.uid = stackUid;
+        stackLoc.position = fort->getPosition();
+        locationsInfo.push_back(stackLoc);
+
+        startingStack->setOwner(ownerId);
+        startingStack->setSubrace(subraceId);
+        startingStack->setInside(capitalId);
+        fort->setStack(startingStack->getId());
+        placeObject(std::move(startingStack), fort->getPosition());
     }
 
     // If there are known spells specified for player, add them

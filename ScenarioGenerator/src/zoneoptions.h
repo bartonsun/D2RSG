@@ -69,6 +69,12 @@ struct LootInfo
     std::set<CMidgardID> forbiddenIds;
 };
 
+struct GuardianInfo
+{
+    bool create{true};
+    std::vector<CMidgardID> modifierIds;
+};
+
 struct GroupInfo
 {
     // Subraces of units allowed in group
@@ -168,7 +174,7 @@ struct CapitalInfo
     AiPriority aiPriority;
     int gapMask{0};
     // Generate capital guardian
-    bool guardian{true};
+    GuardianInfo guardian;
     // Generate start stack in capital
     bool startingStack{true};
     // Location
@@ -355,6 +361,7 @@ struct ZoneOptions
     int gapChance{50}; // Chance border tile will become gap in case of SemiOpen borders
     int size{1};       // Zone size
     char label{};
+    float pathWidth{75.f};
     std::map<std::pair<TemplateZoneId, TemplateZoneId>, int> guardCounters;
 };
 
