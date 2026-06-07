@@ -51,7 +51,7 @@ struct LocationInfo
 
 struct OrderInfo
 {
-    OrderType type{OrderType::Normal};
+    OrderType type{OrderType::Stand};
     std::string targetUid;
 };
 
