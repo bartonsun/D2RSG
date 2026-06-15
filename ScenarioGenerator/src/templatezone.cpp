@@ -3266,20 +3266,20 @@ void TemplateZone::placeCapital()
             }
             mapGenerator->insertObject(std::move(guardianUnit));
 
-            // Добавляем в группу столицы
+            // Add capital group
             Group& group = capitalCity->getGroup();
             bool isBig = guardianInfo->isBig();
-            int slot = 2; // слот по умолчанию
+            int slot = 2;
             group.addUnit(guardianUnitId, slot, isBig);
             if (isBig) {
-                group.addUnit(guardianUnitId, slot + 1, isBig); // занимает два слота
+                group.addUnit(guardianUnitId, slot + 1, isBig);
             }
-            // Уменьшаем количество доступных слотов для гарнизона
+
             remainingSlots -= (isBig ? 2 : 1);
             positions.erase(slot);
             if (isBig)
                 positions.erase(slot + 1);
-            // Заполняем units для отладки (нам они не нужны, но createGroup ожидает)
+
             units[slot] = guardianInfo;
             if (isBig)
                 units[slot + 1] = guardianInfo;
