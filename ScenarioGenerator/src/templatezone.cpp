@@ -3239,9 +3239,6 @@ void TemplateZone::placeCapital()
     const auto& garrison{capital.garrison};
 
     {
-        const UnitInfo* guardianInfo{unitsInfo.find(raceInfo.getGuardianUnitId())->second.get()};
-        assert(guardianInfo);
-
         int remainingSlots = 6;
         // Create capital garrison
         std::size_t unusedValue{};
@@ -3279,10 +3276,6 @@ void TemplateZone::placeCapital()
             positions.erase(slot);
             if (isBig)
                 positions.erase(slot + 1);
-
-            units[slot] = guardianInfo;
-            if (isBig)
-                units[slot + 1] = guardianInfo;
         }
 
         const auto& garrisonValue{garrison.value};
