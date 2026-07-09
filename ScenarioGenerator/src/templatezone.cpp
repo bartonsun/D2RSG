@@ -2977,21 +2977,6 @@ void TemplateZone::fractalize()
         }
     }
 
-    if ((type == TemplateZoneType::PlayerStart || type == TemplateZoneType::AiStart)
-        && fillType != TemplateZoneFillType::None) {
-        Position center = getPosition();
-        for (int dx = -5; dx <= 5; ++dx) {
-            for (int dy = -5; dy <= 5; ++dy) {
-                Position tile = center + Position{dx, dy};
-                if (mapGenerator->map->isInTheMap(tile) && mapGenerator->getZoneId(tile) == id
-                    && !mapGenerator->isUsed(tile) && !mapGenerator->isBlocked(tile)) {
-                    mapGenerator->setOccupied(tile, TileType::Possible);
-                    freePaths.insert(tile);
-                }
-            }
-        }
-    }
-
     // Cut straight paths towards the center
     for (const auto& node : nodes) {
         auto subnodes{nodes};
