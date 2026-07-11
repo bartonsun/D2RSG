@@ -254,16 +254,22 @@ bool MapGenerator::fillZones()
     }
 
     for (auto& it : zones) {
-        if (it.second->fillType != TemplateZoneFillType::None) {
-            it.second->applyFill();
-        }
-    }
-
-    for (auto& it : zones) {
         it.second->assignOrderTargets();
     }
 
     createRoads();
+
+    for (auto& it : zones) {
+        if (it.second->fillType != TemplateZoneFillType::None) {
+            it.second->protectRoadTiles();
+        }
+    }
+
+    for (auto& it : zones) {
+        if (it.second->fillType != TemplateZoneFillType::None) {
+            it.second->applyFill();
+        }
+    }
 
     return true;
 }
@@ -451,10 +457,14 @@ bool MapGenerator::createDirectConnections()
                 for (const auto& cell : squareCells) {
                     setOccupied(cell, TileType::Free);
                     if (getZoneId(cell) == zoneA->id || getZoneId(cell) == zoneB->id) {
-                        zoneA->addRoadNode(cell);
-                        zoneB->addRoadNode(cell);
                         zoneA->connectWithCenter(cell, true, true);
                         zoneB->connectWithCenter(cell, true, true);
+                        zoneA->addRoadNode(cell);
+                        zoneB->addRoadNode(cell);
+                        zoneA->addMaskedTile(cell);
+                        zoneB->addMaskedTile(cell);
+                        zoneA->addFreePath(cell);
+                        zoneB->addFreePath(cell);
                     }
                     usedConnectionTiles.insert(cell);
                 }
@@ -482,6 +492,10 @@ bool MapGenerator::createDirectConnections()
                     setOccupied(guardPos, TileType::Free);
                 zoneA->addRoadNode(guardPos);
                 zoneB->addRoadNode(guardPos);
+                zoneA->addMaskedTile(guardPos);
+                zoneB->addMaskedTile(guardPos);
+                zoneA->addFreePath(guardPos);
+                zoneB->addFreePath(guardPos);
                 usedConnectionTiles.insert(guardPos);
                 connectionMade = true;
                 break;
