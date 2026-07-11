@@ -465,7 +465,7 @@ void TemplateZone::createObstacles()
     // tiles and place around
 
     // Place forests
-    const int forests = mapGenerator->mapGenOptions.mapTemplate->settings.forest;
+    const int forests = getForestPercent();
 
     if (forests == 0) {
         // Cleanup, remove unused possible tiles to make space for roads
@@ -4503,6 +4503,59 @@ void TemplateZone::protectRoadTiles()
             addMaskedTile(tile);
         }
     }
+}
+
+void TemplateZone::applyConversion2Water()
+{
+    if (waterPrc <= 0)
+        return;
+
+    auto& rand = mapGenerator->randomGenerator;
+    std::vector<Position> candidates;
+
+    for (const auto& tile : tileInfo) {
+        if (maskedTiles.count(tile))
+            continue;
+        if (mapGenerator->isRoad(tile))
+            continue;
+        if (mapGenerator->isUsed(tile))
+            continue;
+        if (!mapGenerator->isFree(tile) && !mapGenerator->isPossible(tile))
+            continue;
+        if (isBorderTile(tile))
+            continue;
+
+        candidates.push_back(tile);
+    }
+
+    if (candidates.empty())
+        return;
+
+    randomShuffle(candidates, rand);
+    int toFill = static_cast<int>(candidates.size() * waterPrc / 100.0);
+    toFill = std::min(toFill, static_cast<int>(candidates.size()));
+
+    for (int i = 0; i < toFill; ++i) {
+        const auto& tile = candidates[i];
+        auto& mapTile = mapGenerator->map->getTile(tile);
+        mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Water);
+        mapGenerator->setOccupied(tile, TileType::Free);
+        addMaskedTile(tile);
+    }
+}
+
+int TemplateZone::getRoadsPercent() const
+{
+    if (roadsPrc >= 0)
+        return roadsPrc;
+    return mapGenerator->mapGenOptions.mapTemplate->settings.roads;
+}
+
+int TemplateZone::getForestPercent() const
+{
+    if (forestPrc >= 0)
+        return forestPrc;
+    return mapGenerator->mapGenOptions.mapTemplate->settings.forest;
 }
 
 void TemplateZone::createLandPatch(const Position& pos,

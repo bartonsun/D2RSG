@@ -893,6 +893,9 @@ static std::shared_ptr<ZoneOptions> createZoneOptions(const sol::table& zone)
 
     int pathWidth = readValue(zone, "pathWidth", 9, 1, 144);
     options->pathWidth = static_cast<float>(pathWidth * pathWidth);
+    options->waterPrc = readValue(zone, "water", 0, 0, 100);
+    options->forestPrc = readValue(zone, "forest", -1, -1, 100);
+    options->roadsPrc = readValue(zone, "roads", -1, -1, 100);
 
     if (options->type == TemplateZoneType::PlayerStart
         || options->type == TemplateZoneType::AiStart) {

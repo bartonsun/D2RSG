@@ -317,6 +317,10 @@ struct TemplateZone : public ZoneOptions
     bool isMaskedTile(const Position& position);
 
     void protectRoadTiles();
+    void applyConversion2Water();
+
+    int getRoadsPercent() const;
+    int getForestPercent() const;
 
     void createLandPatch(const Position& pos,
                          const Position& size,

@@ -266,6 +266,13 @@ bool MapGenerator::fillZones()
     }
 
     for (auto& it : zones) {
+        auto& zone = it.second;
+        if (zone->waterPrc > 0) {
+            zone->applyConversion2Water();
+        }
+    }
+
+    for (auto& it : zones) {
         if (it.second->fillType != TemplateZoneFillType::None) {
             it.second->applyFill();
         }
@@ -719,16 +726,16 @@ void MapGenerator::setNearestObjectDistance(const Position& position, float valu
 
 void MapGenerator::createRoads()
 {
-    const auto roadsPercentage{mapGenOptions.mapTemplate->settings.roads};
-    if (roadsPercentage == 0) {
-        // No roads at all, nothing to do here
-        return;
-    }
-
     std::set<Position> roads;
 
     for (const auto& it : zones) {
         const auto& zoneRoads{it.second->getRoads()};
+        if (zoneRoads.empty())
+            continue;
+
+        int roadsPercentage = it.second->getRoadsPercent();
+        if (roadsPercentage == 0)
+            continue;
 
         for (const auto& roadInfo : zoneRoads) {
             auto path{roadInfo.path};
