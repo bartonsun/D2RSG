@@ -394,9 +394,15 @@ static void readStack(StackInfo& info, sol::table table)
         info.customSubraceUid = subraceObj.as<std::string>();
         info.subrace = SubRaceType::Neutral;
     }
-    auto order = table.get<OptionalTable>("order");
-    if (order.has_value()) {
-        readOrder(info.order, order.value());
+    sol::object orderObj = table.get<sol::object>("order");
+    if (orderObj.valid()) {
+        if (orderObj.get_type() == sol::type::table) {
+            sol::table orderTable = orderObj.as<sol::table>();
+            readOrder(info.order, orderTable);
+        } else {
+            info.order.type = orderObj.as<OrderType>();
+            info.order.targetUid = "";
+        }
     }
     info.name = readString(table, "name", "");
     auto units = table.get<sol::optional<StringSet>>("leaderIds");
