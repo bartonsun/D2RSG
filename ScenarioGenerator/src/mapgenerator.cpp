@@ -266,13 +266,6 @@ bool MapGenerator::fillZones()
     }
 
     for (auto& it : zones) {
-        auto& zone = it.second;
-        if (zone->waterPrc > 0) {
-            zone->applyConversion2Water();
-        }
-    }
-
-    for (auto& it : zones) {
         if (it.second->fillType != TemplateZoneFillType::None) {
             it.second->applyFill();
         }
@@ -485,24 +478,44 @@ bool MapGenerator::createDirectConnections()
                 }
                 zoneA->addRoadNode(guardPos);
                 zoneB->addRoadNode(guardPos);
+                zoneA->addMaskedTile(guardPos);
+                zoneB->addMaskedTile(guardPos);
+                zoneA->addFreePath(guardPos);
+                zoneB->addFreePath(guardPos);
                 connectionMade = true;
                 break;
             } else { // size == 1
                 if (connection.distance > 0 && forbidden.count(guardPos))
                     continue;
 
-                zoneA->connectWithCenter(guardPos, true, true);
+                Position otherPos{-1, -1};
+                const Position dirs[] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+                for (const auto& d : dirs) {
+                    Position neighbor = guardPos + d;
+                    if (map->isInTheMap(neighbor) && getZoneId(neighbor) == zoneB->id) {
+                        otherPos = neighbor;
+                        break;
+                    }
+                }
+
+                if (!otherPos.isValid()) {
+                }
+
+                zoneA->connectWithCenter(otherPos, true, true);
                 zoneB->connectWithCenter(guardPos, true, true);
                 const Stack* guard{zoneA->placeZoneGuard(guardPos, connection.guard, zoneB->id)};
                 zoneB->updateDistances(guardPos);
                 if (!guard)
                     setOccupied(guardPos, TileType::Free);
                 zoneA->addRoadNode(guardPos);
+                zoneA->addRoadNode(otherPos);
                 zoneB->addRoadNode(guardPos);
+                zoneB->addRoadNode(otherPos);
                 zoneA->addMaskedTile(guardPos);
-                zoneB->addMaskedTile(guardPos);
+                zoneB->addMaskedTile(otherPos);
                 zoneA->addFreePath(guardPos);
-                zoneB->addFreePath(guardPos);
+                zoneB->addFreePath(otherPos);
+
                 usedConnectionTiles.insert(guardPos);
                 connectionMade = true;
                 break;

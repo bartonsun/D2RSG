@@ -289,6 +289,8 @@ void TemplateZone::fill()
     // Zone center should be always clear to allow other tiles to connect
     initFreeTiles();
     fractalize();
+    generateWater();
+    applyTerrainPaint();
     placeCities();
     placeMerchants();
     placeMages();
@@ -354,7 +356,7 @@ void TemplateZone::createObstacles()
                 continue;
             if (mapGenerator->shouldBeBlocked(tile) && !isBorderTile(tile)) {
                 auto& mapTile = mapGenerator->map->getTile(tile);
-                mapTile.setTerrainGround(TerrainType::Neutral, fillGround);
+                mapTile.setTerrainGround(mapTile.terrain, fillGround);
                 if (fillGround == GroundType::Forest) {
                     mapTile.treeImage = getRandomTreeImageIndex(rand);
                 }
@@ -498,7 +500,7 @@ void TemplateZone::createObstacles()
 
             auto& mapTile = mapGenerator->map->getTile(tile);
 
-            mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Forest);
+            mapTile.setTerrainGround(mapTile.terrain, GroundType::Forest);
             mapTile.treeImage = getRandomTreeImageIndex(rand);
         }
     }
@@ -712,6 +714,7 @@ void TemplateZone::placeObject(std::unique_ptr<Fortification>&& fortification,
         mapGenerator->setOccupied(tile, TileType::Used);
         // Change terrain under city to race specific
         mapGenerator->paintTerrain(tile, terrain, GroundType::Plain);
+        addMaskedTile(tile);
     }
 
     if (fortification->getGapMask() > 0) {
@@ -1343,6 +1346,10 @@ bool TemplateZone::connectPath(const Position& source, bool onlyStraight)
 
         auto functor = [this, &open, &closed, &cameFrom, &currentNode, &distances](Position& pos) {
             if (contains(closed, pos)) {
+                return;
+            }
+
+            if (maskedTiles.count(pos)) {
                 return;
             }
 
@@ -2235,6 +2242,10 @@ Site* TemplateZone::placeMerchant(const Position& position, const MerchantInfo& 
 
     merchant->sortItemsByType();
 
+    if (mapGenerator->map->getTile(position).ground == GroundType::Water) {
+        createLandPatch(position, {3, 3}, 80, 2);
+    }
+
     std::string uid = generateUid("MERCHANT");
 
     auto merchantPtr{merchant.get()};
@@ -2339,6 +2350,10 @@ Site* TemplateZone::placeMage(const Position& position, const MageInfo& mageInfo
     }
 
     std::string uid = generateUid("MAGE");
+
+    if (mapGenerator->map->getTile(position).ground == GroundType::Water) {
+        createLandPatch(position, {3, 3}, 80, 2);
+    }
 
     auto magePtr{mage.get()};
     placeObject(std::move(mage), position);
@@ -2451,6 +2466,10 @@ Site* TemplateZone::placeMercenary(const Position& position, const MercenaryInfo
         mercenary->addUnit(unit.unitId, unit.level, unit.unique);
     }
 
+    if (mapGenerator->map->getTile(position).ground == GroundType::Water) {
+        createLandPatch(position, {3, 3}, 80, 2);
+    }
+
     std::string uid = generateUid("MERCENARY");
 
     auto mercPtr{mercenary.get()};
@@ -2488,6 +2507,10 @@ Site* TemplateZone::placeTrainer(const Position& position, const TrainerInfo& tr
 
     trainer->setImgIso(*getRandomElement(getGeneratorSettings().trainers.images, rand));
     trainer->setAiPriority(trainerInfo.aiPriority);
+
+    if (mapGenerator->map->getTile(position).ground == GroundType::Water) {
+        createLandPatch(position, {3, 3}, 80, 2);
+    }
 
     std::string uid = generateUid("TRAINER");
 
@@ -2539,6 +2562,10 @@ Site* TemplateZone::placeMarket(const Position& position, const ResourceMarketIn
     }
 
     market->setStock(stock);
+
+    if (mapGenerator->map->getTile(position).ground == GroundType::Water) {
+        createLandPatch(position, {3, 3}, 80, 2);
+    }
 
     std::string uid = generateUid("MARKET");
 
@@ -3072,6 +3099,302 @@ void TemplateZone::fractalize()
     }
 }
 
+void TemplateZone::generateWater()
+{
+    WaterType effectiveContent = (waterType != WaterType::None)
+                                        ? waterType
+                                        : mapGenerator->mapGenOptions.mapTemplate->settings
+                                              .waterType;
+
+    int effectivePercent = (waterPrc >= 0)
+                               ? waterPrc
+                               : mapGenerator->mapGenOptions.mapTemplate->settings.water;
+
+    if (effectiveContent == WaterType::None || effectivePercent <= 0)
+        return;
+
+    auto& rand = mapGenerator->randomGenerator;
+    std::set<Position> waterTiles;
+
+    switch (effectiveContent) {
+    case WaterType::Lakes:
+        generateLakes(waterTiles, effectivePercent, rand);
+        break;
+    case WaterType::Rivers:
+        generateRivers(waterTiles, effectivePercent, rand);
+        break;
+    case WaterType::Islands:
+        generateIslands(waterTiles, effectivePercent, rand);
+        break;
+    default:
+        generateLakes(waterTiles, effectivePercent, rand);
+        break;
+    }
+
+    for (const auto& tile : waterTiles) {
+        if (!mapGenerator->map->isInTheMap(tile))
+            continue;
+        if (mapGenerator->isUsed(tile) || mapGenerator->isRoad(tile))
+            continue;
+        if (freePaths.count(tile) || maskedTiles.count(tile))
+            continue;
+        auto& mapTile = mapGenerator->map->getTile(tile);
+        mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Water);
+        mapGenerator->setOccupied(tile, TileType::Possible);
+        if (!allowPlaceOnWater && type != TemplateZoneType::Water) {
+            addMaskedTile(tile);
+        }
+    }
+}
+
+void TemplateZone::generateLakes(std::set<Position>& outWater, int percent, RandomGenerator& rand)
+{
+    std::vector<Position> candidates;
+    for (const auto& tile : tileInfo) {
+        if (isBorderTile(tile))
+            continue;
+        if (!mapGenerator->isFree(tile) && !mapGenerator->isPossible(tile))
+            continue;
+        if (mapGenerator->isUsed(tile))
+            continue;
+        candidates.push_back(tile);
+    }
+    if (candidates.empty())
+        return;
+
+    int totalWaterCells = static_cast<int>(candidates.size() * percent / 100.0);
+    if (totalWaterCells == 0)
+        return;
+
+    randomShuffle(candidates, rand);
+
+    int lakesCount = std::max(1, totalWaterCells / 20);
+    const std::array<Position, 4> dirs = {{Position{0, -1}, {1, 0}, {0, 1}, {-1, 0}}};
+
+    for (int i = 0; i < lakesCount && !candidates.empty(); ++i) {
+        int idx = rand.nextInteger(0, static_cast<int>(candidates.size()) - 1);
+        Position seed = candidates[idx];
+        candidates.erase(candidates.begin() + idx);
+
+        std::queue<Position> queue;
+        queue.push(seed);
+        std::set<Position> lakeTiles;
+        lakeTiles.insert(seed);
+
+        while (!queue.empty() && (int)lakeTiles.size() < totalWaterCells / lakesCount * 2) {
+            Position cur = queue.front();
+            queue.pop();
+            for (const auto& dir : dirs) {
+                Position n = cur + dir;
+                if (!mapGenerator->map->isInTheMap(n))
+                    continue;
+                if (lakeTiles.count(n))
+                    continue;
+                if (!contains(candidates, n))
+                    continue;
+                if (rand.chance(70)) {
+                    lakeTiles.insert(n);
+                    queue.push(n);
+                    eraseIfPresent(candidates, n);
+                }
+            }
+        }
+
+        outWater.insert(lakeTiles.begin(), lakeTiles.end());
+        if ((int)outWater.size() >= totalWaterCells)
+            break;
+    }
+
+    if ((int)outWater.size() < totalWaterCells) {
+        int remaining = totalWaterCells - outWater.size();
+        for (const auto& tile : candidates) {
+            if (remaining == 0)
+                break;
+            outWater.insert(tile);
+            --remaining;
+        }
+    }
+}
+
+void TemplateZone::generateRivers(std::set<Position>& outWater, int percent, RandomGenerator& rand)
+{
+    if (percent < 5)
+        return;
+
+    std::vector<Position> innerPoints;
+    for (const auto& tile : tileInfo) {
+        if (!isBorderTile(tile) && !mapGenerator->isUsed(tile) && !mapGenerator->isRoad(tile)) {
+            innerPoints.push_back(tile);
+        }
+    }
+
+    if (innerPoints.size() < 20) {
+        for (const auto& tile : tileInfo) {
+            if (!mapGenerator->isUsed(tile) && !mapGenerator->isRoad(tile)) {
+                innerPoints.push_back(tile);
+            }
+        }
+    }
+
+    if (innerPoints.size() < 2)
+        return;
+
+    randomShuffle(innerPoints, rand);
+    int numRivers = std::max(3, std::min(10, static_cast<int>(innerPoints.size() * percent / 200)));
+    int totalWater = static_cast<int>(tileInfo.size() * percent / 100.0);
+    totalWater = std::max(totalWater, static_cast<int>(tileInfo.size() * 0.1));
+
+    const std::array<Position, 4> dirs = {{{0, -1}, {1, 0}, {0, 1}, {-1, 0}}};
+
+    for (int r = 0; r < numRivers && (int)outWater.size() < totalWater; ++r) {
+        Position start = innerPoints[r % innerPoints.size()];
+        Position end = start;
+        float maxDist = 0;
+        for (int i = 0; i < std::min(50, (int)innerPoints.size()); ++i) {
+            const auto& candidate = innerPoints[(r + i) % innerPoints.size()];
+            float dist = start.distanceSquared(candidate);
+            if (dist > maxDist) {
+                maxDist = dist;
+                end = candidate;
+            }
+        }
+        if (start == end && innerPoints.size() > 1) {
+            end = innerPoints[(r + innerPoints.size() / 2) % innerPoints.size()];
+        }
+
+        Position current = start;
+        std::set<Position> riverPath;
+        riverPath.insert(start);
+
+        int steps = 0;
+        int maxSteps = std::max(300, totalWater * 2);
+        while ((current.x != end.x || current.y != end.y) && steps < maxSteps
+               && (int)riverPath.size() < totalWater) {
+            std::vector<Position> sortedDirs(dirs.begin(), dirs.end());
+            std::sort(sortedDirs.begin(), sortedDirs.end(),
+                      [&](const Position& a, const Position& b) {
+                          return (current + a).distanceSquared(end)
+                                 < (current + b).distanceSquared(end);
+                      });
+            Position nextDir = sortedDirs[0];
+            if (!rand.chance(60)) {
+                nextDir = *getRandomElement(sortedDirs, rand);
+            }
+            Position next = current + nextDir;
+            if (!mapGenerator->map->isInTheMap(next))
+                break;
+            if (riverPath.count(next)) {
+                next = current + *getRandomElement(sortedDirs, rand);
+                if (!mapGenerator->map->isInTheMap(next) || riverPath.count(next))
+                    break;
+            }
+            if (mapGenerator->isUsed(next) || mapGenerator->isRoad(next))
+                break;
+
+            riverPath.insert(next);
+            current = next;
+            ++steps;
+        }
+
+        if (riverPath.size() < 10)
+            continue;
+
+        outWater.insert(riverPath.begin(), riverPath.end());
+    }
+
+    if ((int)outWater.size() < totalWater) {
+        std::vector<Position> existing(outWater.begin(), outWater.end());
+        randomShuffle(existing, rand);
+        int remaining = totalWater - outWater.size();
+        for (const auto& tile : existing) {
+            if (remaining <= 0)
+                break;
+            std::vector<Position> dirsShuffled(dirs.begin(), dirs.end());
+            randomShuffle(dirsShuffled, rand);
+            for (const auto& dir : dirsShuffled) {
+                Position n = tile + dir;
+                if (!mapGenerator->map->isInTheMap(n))
+                    continue;
+                if (outWater.count(n))
+                    continue;
+                if (mapGenerator->isUsed(n) || mapGenerator->isRoad(n))
+                    continue;
+                outWater.insert(n);
+                --remaining;
+                break;
+            }
+        }
+    }
+}
+
+void TemplateZone::generateIslands(std::set<Position>& outWater, int percent, RandomGenerator& rand)
+{
+    std::vector<Position> candidates;
+    for (const auto& tile : tileInfo) {
+        if (isBorderTile(tile))
+            continue;
+        if (!mapGenerator->isFree(tile) && !mapGenerator->isPossible(tile))
+            continue;
+        if (mapGenerator->isUsed(tile))
+            continue;
+        candidates.push_back(tile);
+    }
+    if (candidates.empty())
+        return;
+
+    int totalLand = static_cast<int>(candidates.size() * (100 - percent) / 100.0);
+    if (totalLand == 0)
+        return;
+
+    randomShuffle(candidates, rand);
+    std::set<Position> landTiles;
+    int islandsCount = std::max(1, totalLand / 15);
+
+    const std::array<Position, 4> dirs = {{Position{0, -1}, {1, 0}, {0, 1}, {-1, 0}}};
+
+    for (int i = 0; i < islandsCount && !candidates.empty() && (int)landTiles.size() < totalLand;
+         ++i) {
+        int idx = rand.nextInteger(0, static_cast<int>(candidates.size()) - 1);
+        Position seed = candidates[idx];
+        candidates.erase(candidates.begin() + idx);
+
+        std::queue<Position> queue;
+        queue.push(seed);
+        std::set<Position> island;
+        island.insert(seed);
+
+        while (!queue.empty() && (int)island.size() < totalLand / islandsCount * 2) {
+            Position cur = queue.front();
+            queue.pop();
+            for (const auto& dir : dirs) {
+                Position n = cur + dir;
+                if (!mapGenerator->map->isInTheMap(n))
+                    continue;
+                if (island.count(n))
+                    continue;
+                if (!contains(candidates, n))
+                    continue;
+                if (rand.chance(70)) {
+                    island.insert(n);
+                    queue.push(n);
+                    eraseIfPresent(candidates, n);
+                }
+            }
+        }
+        landTiles.insert(island.begin(), island.end());
+    }
+
+    for (const auto& tile : tileInfo) {
+        if (landTiles.count(tile))
+            continue;
+        if (isBorderTile(tile))
+            continue;
+        if (mapGenerator->isUsed(tile))
+            continue;
+        outWater.insert(tile);
+    }
+}
+
 void TemplateZone::applyFill()
 {
     if (fillType == TemplateZoneFillType::None)
@@ -3116,7 +3439,7 @@ void TemplateZone::applyFill()
             const auto& mountain = *getRandomElement(smallMountains, rand);
             mapGenerator->map->addMountain(tile, {1, 1}, mountain.image);
             auto& mapTile = mapGenerator->map->getTile(tile);
-            mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Mountain);
+            mapTile.setTerrainGround(mapTile.terrain, GroundType::Mountain);
             mapGenerator->setOccupied(tile, TileType::Blocked);
             addMaskedTile(tile);
         }
@@ -3153,11 +3476,11 @@ void TemplateZone::applyFill()
     if (borderType == ZoneBorderType::Open) {
         for (const auto& tile : borderTiles) {
             // Skip used tiles
-            if (freePaths.count(tile) || mapGenerator->isUsed(tile))
+            if (maskedTiles.count(tile) || freePaths.count(tile) || mapGenerator->isUsed(tile))
                 continue;
 
             auto& mapTile = mapGenerator->map->getTile(tile);
-            mapTile.setTerrainGround(TerrainType::Neutral, fillGround);
+            mapTile.setTerrainGround(mapTile.terrain, fillGround);
             if (fillGround == GroundType::Forest) {
                 mapTile.treeImage = getRandomTreeImageIndex(rand);
             }
@@ -4176,6 +4499,10 @@ bool TemplateZone::findPlaceForObject(const std::set<Position>& area,
             continue;
         }
 
+        if (maskedTiles.count(tile)) {
+            continue;
+        }
+
         if (findAccessible) {
             if (!isAccessibleFromSomewhere(mapElement, tile)) {
                 continue;
@@ -4311,10 +4638,8 @@ bool TemplateZone::areAllTilesAvailable(const MapElement& mapElement,
 {
     for (const auto& offset : blockedOffsets) {
         const auto t{position + offset};
-
-        if (!mapGenerator->map->isInTheMap(t) || !mapGenerator->isPossible(t)
-            || mapGenerator->getZoneId(t) != id) {
-            // If at least one tile is not possible, object can't be placed here
+        if (!mapGenerator->map->isInTheMap(t) || maskedTiles.count(t)
+            || !mapGenerator->isPossible(t) || mapGenerator->getZoneId(t) != id) {
             return false;
         }
     }
@@ -4505,24 +4830,18 @@ void TemplateZone::protectRoadTiles()
     }
 }
 
-void TemplateZone::applyConversion2Water()
+void TemplateZone::applyTerrainPaint()
 {
-    if (waterPrc <= 0)
+    if (terrainPrc <= 0)
         return;
 
     auto& rand = mapGenerator->randomGenerator;
     std::vector<Position> candidates;
 
     for (const auto& tile : tileInfo) {
-        if (maskedTiles.count(tile))
-            continue;
-        if (mapGenerator->isRoad(tile))
-            continue;
-        if (mapGenerator->isUsed(tile))
-            continue;
-        if (!mapGenerator->isFree(tile) && !mapGenerator->isPossible(tile))
-            continue;
-        if (isBorderTile(tile))
+        const auto& mapTile = mapGenerator->map->getTile(tile);
+
+        if (mapTile.ground == GroundType::Mountain || mapTile.ground == GroundType::Water)
             continue;
 
         candidates.push_back(tile);
@@ -4532,15 +4851,13 @@ void TemplateZone::applyConversion2Water()
         return;
 
     randomShuffle(candidates, rand);
-    int toFill = static_cast<int>(candidates.size() * waterPrc / 100.0);
-    toFill = std::min(toFill, static_cast<int>(candidates.size()));
+    int toPaint = static_cast<int>(candidates.size() * terrainPrc / 100.0);
+    toPaint = std::min(toPaint, static_cast<int>(candidates.size()));
 
-    for (int i = 0; i < toFill; ++i) {
+    for (int i = 0; i < toPaint; ++i) {
         const auto& tile = candidates[i];
-        auto& mapTile = mapGenerator->map->getTile(tile);
-        mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Water);
-        mapGenerator->setOccupied(tile, TileType::Free);
-        addMaskedTile(tile);
+        const auto& mapTile = mapGenerator->map->getTile(tile);
+        mapGenerator->paintTerrain(tile, terrainType, mapTile.ground);
     }
 }
 
@@ -4567,13 +4884,31 @@ void TemplateZone::createLandPatch(const Position& pos,
     auto& mg = *mapGenerator;
     auto& rand = mapGenerator->randomGenerator;
 
+    TerrainType patchTerrain = terrainType;
+    if (patchTerrain == TerrainType::Neutral) {
+        for (int dx = -2; dx <= 2 && patchTerrain == TerrainType::Neutral; ++dx) {
+            for (int dy = -2; dy <= 2 && patchTerrain == TerrainType::Neutral; ++dy) {
+                Position p = pos + Position{dx, dy};
+                if (!map.isInTheMap(p))
+                    continue;
+                const Tile& tile = map.getTile(p);
+                if (tile.ground != GroundType::Water && tile.terrain != TerrainType::Neutral) {
+                    patchTerrain = tile.terrain;
+                }
+            }
+        }
+    }
+    if (patchTerrain == TerrainType::Neutral) {
+        patchTerrain = TerrainType::Neutral;
+    }
+
     // 1. Object tiles
     for (int dx = 0; dx < size.x; ++dx) {
         for (int dy = 0; dy < size.y; ++dy) {
             Position p = pos + Position{dx, dy};
             if (map.isInTheMap(p) && mg.getZoneId(p) == id) {
                 Tile& tile = map.getTile(p);
-                tile.setTerrainGround(TerrainType::Neutral, GroundType::Plain);
+                tile.setTerrainGround(patchTerrain, GroundType::Plain);
                 mg.setOccupied(p, TileType::Free);
                 addMaskedTile(p);
             }
@@ -4600,7 +4935,7 @@ void TemplateZone::createLandPatch(const Position& pos,
             break;
         if (rand.chance(extraChance)) {
             Tile& tile = map.getTile(p);
-            tile.setTerrainGround(TerrainType::Neutral, GroundType::Plain);
+            tile.setTerrainGround(patchTerrain, GroundType::Plain);
             mg.setOccupied(p, TileType::Free);
             addMaskedTile(p);
             ++added;

@@ -277,11 +277,11 @@ enum class MonsterStrength
 };
 
 // Internal generator use only
-enum class WaterContent
+enum class WaterType
 {
-    Random = -1,
-    None,
-    Normal,
+    None = 0,
+    Lakes,
+    Rivers,
     Islands,
 };
 

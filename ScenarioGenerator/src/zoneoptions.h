@@ -358,11 +358,15 @@ struct ZoneOptions
     TemplateZoneFillType fillType{TemplateZoneFillType::None};
     RaceType playerRace{RaceType::Neutral};
     ZoneBorderType borderType{ZoneBorderType::Closed};
-    int gapChance{50}; // Chance border tile will become gap in case of SemiOpen borders
-    int size{1};       // Zone size
-    int waterPrc{0};      // Percent of free tiles converted to water
-    int forestPrc{-1};     // Percent of forest tiles. -1 = use global
-    int roadsPrc{-1};      // Percent of tiles with roads. -1 = use global
+    TerrainType terrainType{TerrainType::Neutral};
+    WaterType waterType{WaterType::None};
+    bool allowPlaceOnWater{true};
+    int terrainPrc{0};      // Percent of race specific tiles
+    int waterPrc{-1};       // Percent of water tiles. -1 = use global
+    int forestPrc{-1};      // Percent of forest tiles. -1 = use global
+    int roadsPrc{-1};       // Percent of tiles with roads. -1 = use global
+    int gapChance{50};      // Chance border tile will become gap in case of SemiOpen borders
+    int size{1};            // Zone size
     char label{};
     float pathWidth{75.f};
     std::map<std::pair<TemplateZoneId, TemplateZoneId>, int> guardCounters;

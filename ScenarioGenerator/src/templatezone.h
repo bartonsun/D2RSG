@@ -271,7 +271,8 @@ struct TemplateZone : public ZoneOptions
 
     void initTerrain();
     void fractalize();
-    void applyFill();
+    void generateWater();
+    void applyTerrainPaint();
     void placeCapital();
     void placeCities();
     void placeMerchants();
@@ -286,6 +287,7 @@ struct TemplateZone : public ZoneOptions
     void placeLocations();
     void assignOrderTargets();
     bool createRequiredObjects();
+    void applyFill();
 
     bool findPlaceForObject(const MapElement& mapElement, int minDistance, Position& position);
     bool findPlaceForObject(const std::set<Position>& area,
@@ -317,7 +319,6 @@ struct TemplateZone : public ZoneOptions
     bool isMaskedTile(const Position& position);
 
     void protectRoadTiles();
-    void applyConversion2Water();
 
     int getRoadsPercent() const;
     int getForestPercent() const;
@@ -328,6 +329,10 @@ struct TemplateZone : public ZoneOptions
                          int maxExtraCells = -1);
 
     void placeLocation(const LocationInfo& locInfo);
+
+    void generateLakes(std::set<Position>& outWater, int percent, RandomGenerator& rand);
+    void generateRivers(std::set<Position>& outWater, int percent, RandomGenerator& rand);
+    void generateIslands(std::set<Position>& outWater, int percent, RandomGenerator& rand);
 
     std::string generateUid(const std::string& type,
                             const std::string& parentUid = "",
@@ -340,8 +345,6 @@ private:
     MapGenerator* mapGenerator{};
 
     // Template info
-    TerrainType terrainType{TerrainType::Neutral};
-
     struct ObjectPlacement
     {
         ScenarioObjectPtr object;

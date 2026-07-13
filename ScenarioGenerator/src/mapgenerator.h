@@ -41,7 +41,7 @@ struct MapGenOptions
     std::string name;
     std::string description;
     int size{48};
-    WaterContent waterContent{WaterContent::Random};
+    WaterType waterType{WaterType::None};
     MonsterStrength monsterStrength{MonsterStrength::Random};
 };
 

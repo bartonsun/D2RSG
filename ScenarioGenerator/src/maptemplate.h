@@ -31,6 +31,7 @@ namespace rsg {
 // Everything except name and description player can change
 struct MapTemplateSettings
 {
+    WaterType waterType{WaterType::None};
     std::set<CMidgardID> forbiddenUnits;
     std::set<CMidgardID> forbiddenItems;
     std::set<CMidgardID> forbiddenSpells;
@@ -42,6 +43,7 @@ struct MapTemplateSettings
     int sizeMax{48};
     int size{sizeMin};
     int roads{100}; // Percentage of road tiles
+    int water{0}; // Percentage of water tiles
     int startingGold{};
     int startingNativeMana{};
     int forest{}; // Percentage of unused tiles converted to forest after content placement

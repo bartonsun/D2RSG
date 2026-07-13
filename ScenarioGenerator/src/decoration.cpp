@@ -34,6 +34,24 @@
 
 namespace rsg {
 
+    static RaceType terrainToRace(TerrainType terrain)
+{
+    switch (terrain) {
+    case TerrainType::Human:
+        return RaceType::Human;
+    case TerrainType::Dwarf:
+        return RaceType::Dwarf;
+    case TerrainType::Heretic:
+        return RaceType::Heretic;
+    case TerrainType::Undead:
+        return RaceType::Undead;
+    case TerrainType::Elf:
+        return RaceType::Elf;
+    default:
+        return RaceType::Neutral;
+    }
+}
+
 bool Decoration::decorate(TemplateZone& zone,
                           MapGenerator& mapGenerator,
                           Map& map,
@@ -115,8 +133,17 @@ int Decoration::getMinLandmarkDistance(const LandmarkInfo& info) const
     return info.getSize().x * 2;
 }
 
-RaceType Decoration::getLandmarksRace(TemplateZone&, MapGenerator&, Map&, RandomGenerator&)
+RaceType Decoration::getLandmarksRace(TemplateZone& zone,
+                                      MapGenerator& mapGenerator,
+                                      Map& map,
+                                      RandomGenerator& rand)
 {
+    if (zone.terrainType != TerrainType::Neutral) {
+        if (rand.chance(static_cast<int>(zone.terrainPrc))) {
+            return terrainToRace(zone.terrainType);
+        }
+    }
+
     return RaceType::Neutral;
 }
 
@@ -168,7 +195,26 @@ bool Decoration::placeLandmarks(std::set<Position>& area,
         landmarkTiles.insert(landmarkPtr->getEntrance());
         // Remove blocked tiles from area
         // Change tiles to specified terrain for better visuals
-        const auto landmarkTerrain{getLandmarksTerrain(zone, mapGenerator, map, rand)};
+        TerrainType landmarkTerrain = TerrainType::Neutral;
+        if (zone.terrainType != TerrainType::Neutral) {
+            landmarkTerrain = zone.terrainType;
+        } else {
+            for (const auto& tile : landmarkTiles) {
+                for (const auto& dir : Position::getDirections()) {
+                    Position neighbor = tile + dir;
+                    if (map.isInTheMap(neighbor)) {
+                        const Tile& tileData = map.getTile(neighbor);
+                        if (tileData.terrain != TerrainType::Neutral
+                            && tileData.ground != GroundType::Water) {
+                            landmarkTerrain = tileData.terrain;
+                            break;
+                        }
+                    }
+                }
+                if (landmarkTerrain != TerrainType::Neutral)
+                    break;
+            }
+        }
         for (const auto& tile : landmarkTiles) {
             map.getTile(tile).setTerrainGround(landmarkTerrain, GroundType::Plain);
             area.erase(tile);
@@ -196,9 +242,14 @@ bool Decoration::placeForests(std::set<Position>& area,
         const auto& forestTile{forestTiles[i]};
 
         auto& tile{map.getTile(forestTile)};
+        TerrainType forestTerrain = tile.terrain;
+        if (forestTerrain == TerrainType::Neutral) {
+            forestTerrain = (zone.terrainType != TerrainType::Neutral) ? zone.terrainType
+                                                                       : TerrainType::Neutral;
+        }
+
         tile.setTerrainGround(forestTerrain, GroundType::Forest);
         tile.treeImage = getRandomTreeImageIndex(rand);
-
         mapGenerator.setOccupied(forestTile, TileType::Used);
     }
 
@@ -315,9 +366,12 @@ int VillageDecoration::getMinLandmarkDistance(const LandmarkInfo& info) const
     return info.getSize().x * 3;
 }
 
-RaceType VillageDecoration::getLandmarksRace(TemplateZone&, MapGenerator&, Map&, RandomGenerator&)
+RaceType VillageDecoration::getLandmarksRace(TemplateZone& zone,
+                                             MapGenerator& mapGenerator,
+                                             Map& map,
+                                             RandomGenerator& rand)
 {
-    return RaceType::Neutral;
+    return Decoration::getLandmarksRace(zone, mapGenerator, map, rand);
 }
 
 TerrainType VillageDecoration::getLandmarksTerrain(TemplateZone&,
@@ -459,9 +513,12 @@ std::set<Position> CrystalDecoration::getArea(TemplateZone& zone,
     return decorationsArea;
 }
 
-RaceType CrystalDecoration::getLandmarksRace(TemplateZone&, MapGenerator&, Map&, RandomGenerator&)
+RaceType CrystalDecoration::getLandmarksRace(TemplateZone& zone,
+                                             MapGenerator& mapGenerator,
+                                             Map& map,
+                                             RandomGenerator& rand)
 {
-    return RaceType::Neutral;
+    return Decoration::getLandmarksRace(zone, mapGenerator, map, rand);
 }
 
 TerrainType CrystalDecoration::getLandmarksTerrain(TemplateZone&,
@@ -559,9 +616,12 @@ int SiteDecoration::getMinLandmarkDistance(const LandmarkInfo& info) const
     return info.getSize().x * 3;
 }
 
-RaceType SiteDecoration::getLandmarksRace(TemplateZone&, MapGenerator&, Map&, RandomGenerator&)
+RaceType SiteDecoration::getLandmarksRace(TemplateZone& zone,
+                                          MapGenerator& mapGenerator,
+                                          Map& map,
+                                          RandomGenerator& rand)
 {
-    return RaceType::Neutral;
+    return Decoration::getLandmarksRace(zone, mapGenerator, map, rand);
 }
 
 TerrainType SiteDecoration::getLandmarksTerrain(TemplateZone&,
@@ -590,9 +650,12 @@ int RuinDecoration::getMinLandmarkDistance(const LandmarkInfo& info) const
     return info.getSize().x * 3;
 }
 
-RaceType RuinDecoration::getLandmarksRace(TemplateZone&, MapGenerator&, Map&, RandomGenerator&)
+RaceType RuinDecoration::getLandmarksRace(TemplateZone& zone,
+                                          MapGenerator& mapGenerator,
+                                          Map& map,
+                                          RandomGenerator& rand)
 {
-    return RaceType::Neutral;
+    return Decoration::getLandmarksRace(zone, mapGenerator, map, rand);
 }
 
 TerrainType RuinDecoration::getLandmarksTerrain(TemplateZone&,

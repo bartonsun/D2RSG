@@ -104,10 +104,10 @@ void bindLuaApi(sol::state& lua)
     );
 
     lua.new_enum("Water",
-        "Random", WaterContent::Random,
-        "None", WaterContent::None,
-        "Normal", WaterContent::Normal,
-        "Islands", WaterContent::Islands
+        "None", WaterType::None,
+        "Lakes", WaterType::Lakes,
+        "Rivers", WaterType::Rivers,
+        "Islands", WaterType::Islands
     );
 
     lua.new_enum("Zone",
@@ -893,7 +893,11 @@ static std::shared_ptr<ZoneOptions> createZoneOptions(const sol::table& zone)
 
     int pathWidth = readValue(zone, "pathWidth", 9, 1, 144);
     options->pathWidth = static_cast<float>(pathWidth * pathWidth);
-    options->waterPrc = readValue(zone, "water", 0, 0, 100);
+    options->waterType = zone.get_or("waterType", WaterType::None);
+    options->allowPlaceOnWater = zone.get_or("allowPlaceOnWater", true);
+    options->terrainType = zone.get_or("terrainType", TerrainType::Neutral);
+    options->terrainPrc = readValue(zone, "terrain", 0, 0, 100);
+    options->waterPrc = readValue(zone, "water", -1, -1, 100);
     options->forestPrc = readValue(zone, "forest", -1, -1, 100);
     options->roadsPrc = readValue(zone, "roads", -1, -1, 100);
 
@@ -1221,6 +1225,16 @@ static void readContents(MapTemplate& mapTemplate, const sol::table& contentsTab
         readStringSet(mapTemplate.settings.forbiddenSpells, spells.value());
     }
 
+    auto waterType = contentsTable.get<sol::optional<WaterType>>("waterType");
+    if (waterType.has_value()) {
+        mapTemplate.settings.waterType = waterType.value();
+    }
+
+    auto water = readValue(contentsTable, "water", -1, -1, 100);
+    if (water >= 0) {
+        mapTemplate.settings.water = water;
+    }
+
     auto roads = readValue(contentsTable, "roads", -1, -1, 100);
     if (roads >= 0) {
         mapTemplate.settings.roads = roads;
@@ -1300,6 +1314,9 @@ static void readSettings(MapTemplateSettings& settings, const sol::state& lua)
     settings.startingGold = readValue(table, "startingGold", 0, 0, 9999);
     settings.startingNativeMana = readValue(table, "startingNativeMana", 0, 0, 9999);
     settings.forest = readValue(table, "forest", 0, 0, 100);
+
+    settings.waterType = table.get_or("waterType", WaterType::None);
+    settings.water = readValue(table, "water", 0, 0, 100);
 
     settings.maxUnit = readValue(table, "maxUnit", 5, 2, 10);
     settings.maxSpell = readValue(table, "maxSpell", 5, 0, 5);
