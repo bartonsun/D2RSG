@@ -515,7 +515,6 @@ bool MapGenerator::createDirectConnections()
                 zoneB->addMaskedTile(otherPos);
                 zoneA->addFreePath(guardPos);
                 zoneB->addFreePath(otherPos);
-
                 usedConnectionTiles.insert(guardPos);
                 connectionMade = true;
                 break;

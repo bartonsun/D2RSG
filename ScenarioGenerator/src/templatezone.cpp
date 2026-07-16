@@ -519,6 +519,10 @@ void TemplateZone::connectRoads()
         auto node{*roadNodesCopy.begin()};
         roadNodesCopy.erase(node);
 
+        if (mapGenerator->map->getTile(node).isWater()) {
+            continue;
+        }
+
         Position cross{-1, -1};
 
         auto comparator = [&node](const Position& a, const Position& b) {
@@ -3134,10 +3138,11 @@ void TemplateZone::generateWater()
     for (const auto& tile : waterTiles) {
         if (!mapGenerator->map->isInTheMap(tile))
             continue;
-        if (mapGenerator->isUsed(tile) || mapGenerator->isRoad(tile))
+        if (mapGenerator->isUsed(tile))
             continue;
-        if (freePaths.count(tile) || maskedTiles.count(tile))
+        if (maskedTiles.count(tile))
             continue;
+
         auto& mapTile = mapGenerator->map->getTile(tile);
         mapTile.setTerrainGround(TerrainType::Neutral, GroundType::Water);
         mapGenerator->setOccupied(tile, TileType::Possible);
@@ -3381,6 +3386,27 @@ void TemplateZone::generateIslands(std::set<Position>& outWater, int percent, Ra
                 }
             }
         }
+
+        if (!island.empty()) {
+            int sumX = 0, sumY = 0;
+            for (const auto& pos : island) {
+                sumX += pos.x;
+                sumY += pos.y;
+            }
+            Position center(sumX / (int)island.size(), sumY / (int)island.size());
+            if (!island.count(center)) {
+                float minDist = std::numeric_limits<float>::max();
+                for (const auto& pos : island) {
+                    float d = center.distanceSquared(pos);
+                    if (d < minDist) {
+                        minDist = d;
+                        center = pos;
+                    }
+                }
+            }
+            addRoadNode(center);
+        }
+
         landTiles.insert(island.begin(), island.end());
     }
 
@@ -3458,10 +3484,6 @@ void TemplateZone::applyFill()
                 });
             }
             if (!isBorder)
-                continue;
-
-            // Skip protected tiles
-            if (maskedTiles.count(tile) || freePaths.count(tile) || mapGenerator->isRoad(tile))
                 continue;
 
             // Create water
