@@ -203,6 +203,8 @@ bool MapGenerator::fillZones()
         }
     }
 
+    createCustomSubraces(); 
+
     for (auto& it : zones) {
         it.second->initTowns();
     }
@@ -997,7 +999,7 @@ void MapGenerator::createCustomSubraces()
         CMidgardID subraceId = createId(CMidgardID::Type::SubRace);
         auto subrace = std::make_unique<SubRace>(subraceId);
         subrace->setPlayerId(neutralPlayerId);
-        subrace->setType(SubRaceType::Neutral);
+        subrace->setType(SubRaceType::Custom);
         subrace->setBanner(info.banner);
         subrace->setName(info.name);
 
