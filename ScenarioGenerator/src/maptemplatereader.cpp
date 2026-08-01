@@ -1327,7 +1327,7 @@ static void readSettings(MapTemplateSettings& settings, const sol::state& lua)
     settings.maxUnit = readValue(table, "maxUnit", 5, 2, 10);
     settings.maxSpell = readValue(table, "maxSpell", 5, 0, 5);
     settings.maxLeader = readValue(table, "maxLeader", 99, 1, 99);
-    settings.maxCity = readValue(table, "maxCity", 1, 1, 5);
+    settings.maxCity = readValue(table, "maxCity", 5, 1, 5);
     settings.startingLevel = readValue(table, "startingLevel", 1, 1, 99);
 
     settings.iterations = readValue(table, "iterations", 0, 0, 1000000);
